@@ -1,0 +1,15 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+{% load i18n %}
+<body>
+    <div id="object-details">
+        {{ obj }}
+    </div>
+
+    <div id="actions">
+        <a href="./edit/">{% trans "Edit" %}</a>
+        &nbsp;
+        <a href="../">{% trans "Back to list" %}</a>
+    </div>
+</body>
+</html>
