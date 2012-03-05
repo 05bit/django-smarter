@@ -1,14 +1,12 @@
 django-smarter
 ==============
 
-Django application for smarter generic applications building.
+Django application for smarter CRUD-based applications building.
 
 Overview
 --------
 
-What is *generic* Django application? Well, it's mostly about add-edit-view-remove different objects, but is not limited to that.
-
-If you want admin-like application, but you need a full control on source, than ``django-smarter`` may fit your needs.
+Well, it's mostly about CRUD-based applications - create, read, update and delete different objects, but is not limited to that. If you want admin-like application, but you need a full control on source, than ``django-smarter`` may fit your needs.
 
 Installation
 ------------
@@ -119,4 +117,19 @@ existing ones.
 			# will render to myapp/page_bookmark.html
 			return self.render_to_response(context)
 
+Than you need to register custom views in urls.py:
+
+::
+
+	from smarter import SmarterSite
+	from myapp.views import PageViews
+
+	site = SmarterSite()
+	site.register(PageViews)
+
+	urlpatterns = patterns('',
+		url(r'^', include(site.urls)),
+
+		# other urls ...
+	)
 

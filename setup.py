@@ -17,7 +17,7 @@ def long_description():
     except IOError:
         return LONG_DESCRIPTION
 
-setup(name='smarter',
+setup(name='django-smarter',
       version=version,
       author='Alexey Kinyov',
       author_email='rudy@05bit.com',
