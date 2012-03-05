@@ -62,11 +62,11 @@ In your urls.py:
 
 This will create generic views for Page model, accessed by urls:
 
-	/page/
-	/page/add/
-	/page/<pk>/
-	/page/<pk>/edit/
-	/page/<pk>/remove/
+- /page/
+- /page/add/
+- /page/<pk>/
+- /page/<pk>/edit/
+- /page/<pk>/remove/
 
 Customize templates
 ~~~~~~~~~~~~~~~~~~~
@@ -75,11 +75,11 @@ Each url is mapped to view method and templates.
 
 Templates by urls:
 
-	/page/ => myapp/page_index.html
-	/page/add/ => myapp/page_add.html
-	/page/<pk>/ => myapp/page_details.html
-	/page/<pk>/edit/ => myapp/page_edit.html
-	/page/<pk>/remove/ => myapp/page_remove.html
+- /page/ => myapp/page_index.html
+- /page/add/ => myapp/page_add.html
+- /page/<pk>/ => myapp/page_details.html
+- /page/<pk>/edit/ => myapp/page_edit.html
+- /page/<pk>/remove/ => myapp/page_remove.html
 
 Index template has template variable ``objects_list``.
 
