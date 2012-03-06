@@ -35,7 +35,7 @@ Let’s define a simple model:
 		text = models.TextField
 
 		def __unicode__(self):
-			return self.name
+			return self.title
 
 Create generic views
 ~~~~~~~~~~~~~~~~~~~~
