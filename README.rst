@@ -18,7 +18,13 @@ To install::
 	
 	pip install django-smarter
 
-Then add `smarter` to your `INSTALLED_APPS`.
+Then add ``smarter`` to your ``INSTALLED_APPS``::
+
+	INSTALLED_APPS = (
+		...
+		'smarter',
+		...
+	)
 
 Getting started
 ---------------
@@ -133,3 +139,18 @@ Than you need to register custom views in urls.py:
 		# other urls ...
 	)
 
+Applying decorators
+~~~~~~~~~~~~~~~~~~~
+
+Assume, you'd like to add ``login_required`` decorator to views in your project. You may subclass from ``GenericViews`` and use ``method_decorator`` helper for that.
+
+Example::
+
+	from django.utils.decorators import method_decorator
+	from smarter.views import GenericViews
+
+	class Views(GenericViews):
+
+		@method_decorator(login_required)
+		def add_view(self, *args, **kwargs):
+			return super(Views, self).add_view(*args, **kwargs)
