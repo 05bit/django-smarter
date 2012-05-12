@@ -146,6 +146,7 @@ Assume, you'd like to add ``login_required`` decorator to views in your project.
 
 Example::
 
+	from django.contrib.auth.decorators import login_required
 	from django.utils.decorators import method_decorator
 	from smarter.views import GenericViews
 
