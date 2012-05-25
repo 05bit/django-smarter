@@ -3,98 +3,102 @@ from django.core import serializers
 from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse, Http404
 from django.shortcuts import redirect, render_to_response, get_object_or_404
-from django.views.generic.base import View, TemplateResponseMixin
+from django.template.loader import select_template
+from django.template import Context, RequestContext
 from django.utils import simplejson
-from django.utils.decorators import classonlymethod
 from django.utils.functional import update_wrapper
 
 
-class BaseViews(View, TemplateResponseMixin):
-    """Base class for views.
+class BaseViews(object):
+    """
+    Base class for views. It doesn't implement any real
+    urls or views.
     """
 
     model = None
 
     ### View factory method
     
-    def as_view(self, action=None, **initkwargs):
-        """Create class-based view instance for given ``action``.
-
+    def as_view(self, action=None):
+        """
+        Create class-based view instance for given ``action``.
         Each action corresponds to ``<action>_view`` method.
         """
-        cls = self.view_class
-        model = getattr(self, 'model', None)
-        
-        # validate action
-        # if not action in cls.action_names:
-        #     raise Exception("Unknown action! Your action name should"
-        #                     "be in this list: %s" % str(cls.action_names))
-                            
-        # sanitize keyword arguments
-        # (copy-paste from django/views/generic/base.py)
-        for key in initkwargs:
-            if key in cls.http_method_names:
-                raise TypeError(u"You tried to pass in the %s method name as a "
-                                u"keyword argument to %s(). Don't do that."
-                                % (key, cls.__name__))
-            if not hasattr(cls, key):
-                raise TypeError(u"%s() received an invalid keyword %r" % (
-                    cls.__name__, key))
-
-        # construct view method        
-        dispatch = getattr(cls, '%s_view' % action)
+        view_method_name = '%s_view' % action.replace('-', '_')
+        view_method = getattr(self.view_class, view_method_name)
         def view(request, *args, **kwargs):
-            handler = cls(action=action,
-                        request=request,
-                        model=model,
-                        name_prefix=self.name_prefix,
-                        **initkwargs)
+            handler = self.view_class()
+            handler.action = action
+            handler.model = self.model
+            handler.name_prefix = self.name_prefix
+            handler.request = request
             handler.args = args
             handler.kwargs = kwargs
-            return dispatch(handler, request, *args, **kwargs)
-            
-        # take name and docstring from class
-        # and possible attributes set by decorators
-        # like csrf_exempt from dispatch
+            return view_method(handler, request, *args, **kwargs)            
         # (copy-paste from django/views/generic/base.py)
-        update_wrapper(view, cls, updated=())
-        update_wrapper(view, dispatch, assigned=())
-        
+        update_wrapper(view, self.view_class, updated=())
+        update_wrapper(view, view_method, assigned=())        
         return view
 
     ### URLs
 
-    @classonlymethod
+    @classmethod
     def as_urls(cls, name_prefix=None, view_class=None):
         handler = cls()
         handler.view_class = view_class or cls
         handler.name_prefix = name_prefix
-        return handler.urlpatterns
+        return handler.urls()
+
+    def urls(self):
+        from django.conf.urls.defaults import patterns
+        urlpatterns = patterns('')
+        base = self.urls_base()
+        if base:
+            urlpatterns += patterns('', *base)
+        custom = self.urls_custom()
+        if custom:
+            urlpatterns += patterns('', *custom)
+        return urlpatterns
+
+    def urls_base(self):
+        raise NotImplemented
+
+    def urls_custom(self):
+        return None
+
+    def url(self, schema, action):
+        from django.conf.urls.defaults import url
+        return url(schema, self.as_view(action), name=self.url_name(action))
     
     def url_name(self, action):
-        return '%s%s' % (self.name_prefix, action)
+        return ''.join((self.name_prefix, action))
 
-    @property
-    def urlpatterns(self):
-        raise NotImplemented
+    ### Response
     
-    def render_to_response(self, context):
-        context = self.update_context(context)
-        return super(BaseViews, self).render_to_response(context)
+    def get_template_names(self):
+        raise NotImplemented
     
     def update_context(self, context):
         return context
 
     def render_to_json(self, context, **kwargs):
         if isinstance(context, (dict, list)):
-            output = simplejson.dumps(context)
+            r = simplejson.dumps(context)
         else:
-            output = serializers.serialize('json', context, **kwargs)
-        return HttpResponse(output, mimetype="application/json")
+            r = serializers.serialize('json', context, **kwargs)
+        return HttpResponse(r, mimetype="application/json")
+
+    def render_to_response(self, context, **kwargs):
+        t = select_template(self.get_template_names())
+        c = self.update_context(context)
+        if not isinstance(c, Context):
+            c = RequestContext(self.request, c)
+        return HttpResponse(t.render(c), **kwargs)
 
 
 class GenericViews(BaseViews):
-    """Defines generic views for actions: 'add', 'edit', 'remove',
+    """
+    Defines generic views for actions: 'add', 'edit', 'remove',
     'index', 'details'.
 
     Basic usage example::
@@ -109,43 +113,22 @@ class GenericViews(BaseViews):
 
     ### URLs
 
-    @classonlymethod
+    @classmethod
     def as_urls(cls, model=None, name_prefix=None, view_class=None):
-        handler = cls(model=model or cls.model)
+        handler = cls()
+        handler.model = model or cls.model
         handler.view_class = view_class or cls
-        if name_prefix:
-            handler.name_prefix = name_prefix
-        else:
-            handler.name_prefix = '%s-%s-' % (
-                        model._meta.app_label,
-                        model._meta.object_name.lower(),
-                    )
-        return handler.urlpatterns
+        handler.name_prefix = name_prefix or '%s-%s-' % (
+            handler.model._meta.app_label,
+            handler.model._meta.object_name.lower())
+        return handler.urls()
 
-    @property
-    def urlpatterns(self):
-        from django.conf.urls.defaults import patterns, url, include
-        # if hasattr(self, '_urlpatterns_cache'):
-        #     return self._urlpatterns_cache
-        urlpatterns = patterns('',
-            url(r'^$',
-                self.as_view('index'),
-                name=self.url_name('index')),
-            url(r'^add/$',
-                self.as_view('add'),
-                name=self.url_name('add')),
-            url(r'^(?P<pk>\d+)/$',
-                self.as_view('details'),
-                name=self.url_name('details')),
-            url(r'^(?P<pk>\d+)/edit/$',
-                self.as_view('edit'),
-                name=self.url_name('edit')),
-            url(r'^(?P<pk>\d+)/remove/$',
-                self.as_view('remove'),
-                name=self.url_name('remove')),
-        )
-        # self._urlpatterns_cache = urlpatterns
-        return urlpatterns
+    def urls_base(self):
+        return (self.url(r'^$', 'index'),
+                self.url(r'^add/$', 'add'),
+                self.url(r'^(?P<pk>\d+)/$', 'details'),
+                self.url(r'^(?P<pk>\d+)/edit/$', 'edit'),
+                self.url(r'^(?P<pk>\d+)/remove/$', 'remove'))
 
     ### Form creator
 
@@ -176,60 +159,41 @@ class GenericViews(BaseViews):
         for k,v in help_text.items():
             form.fields[k].help_text = v
         return form
-        #return self.create_form(form_class, form_opts, **kwargs)
     
-    def get_form_kwargs(self, action, request, *args, **kwargs):
-        form_kwargs_func = getattr(self, 'get_form_kwargs_%s' % action, None)
-        if callable(form_kwargs_func):
-            return form_kwargs_func(request, *args, **kwargs)
+    def get_form_params(self):
+        params_method = 'form_params_%s' % self.action.replace('-', '_')
+        if hasattr(self, params_method):
+            return getattr(self, params_method)()
         return {}
     
     def save_form(self, form):
         return form.save()
-            
-    # def create_form(self, form_class, form_opts, **kwargs):
-    #     form = form_class(**kwargs)
-    #     widgets = form_opts.get('widgets', {})
-    #     for k,v in widgets.items():
-    #         form.fields[k].widget = v
-    #     help_text = form_opts.get('help_text', {})
-    #     for k,v in help_text.items():
-    #         form.fields[k].help_text = v
-    #     return form
     
     ### Add view
 
     def add_view(self, request, *args, **kwargs):
         action = self.action
-        form_kwargs = self.get_form_kwargs(action, request, *args, **kwargs)
+        form_params = self.get_form_params()
         if request.method == 'POST':
             form = self.get_form(action=action,
                                 data=request.POST,
                                 files=request.FILES,
-                                **form_kwargs)
+                                **form_params)
             if form.is_valid():
                 instance = self.save_form(form)
                 return self.add_success(request, instance)
         else:
-            form = self.get_form(action=action, **form_kwargs)
+            form = self.get_form(action=action, **form_params)
         context = {'form': form}
         return self.render_to_response(context)
     
     def add_success(self, request, instance):
         if request.is_ajax():
-            return self.render_to_json({'status': 'DONE'})
+            return self.render_to_json({'status': 'OK'})
         else:
             return redirect(instance.get_absolute_url())
 
     ### Edit view
-
-    def get_form_kwargs_edit(self, request, *args, **kwargs):
-        pk = self.kwargs['pk']
-        try:
-            instance = self.model.objects.get(pk=pk)
-        except self.model.DoesNotExist:
-            instance = None
-        return {'instance': instance}
 
     def edit_view(self, request, *args, **kwargs):
         """
@@ -237,25 +201,33 @@ class GenericViews(BaseViews):
         it using standard ModelForm.
         """
         action = self.action
-        form_kwargs = self.get_form_kwargs(action, request, *args, **kwargs)
+        form_params = self.get_form_params()
         if request.method == 'POST':
             form = self.get_form(action=action,
                                 data=request.POST,
                                 files=request.FILES,
-                                **form_kwargs)
+                                **form_params)
             if form.is_valid():
                 instance = self.save_form(form)
                 return self.edit_success(request, instance)
         else:
-            form = self.get_form(action=action, **form_kwargs)
+            form = self.get_form(action=action, **form_params)
         context = {'form': form}
         return self.render_to_response(context)
 
     def edit_success(self, request, instance):
         if request.is_ajax():
-            return self.render_to_json({'status': 'DONE'})
+            return self.render_to_json({'status': 'OK'})
         else:
             return redirect(instance.get_absolute_url())
+
+    def form_params_edit(self):
+        pk = self.kwargs['pk']
+        try:
+            instance = self.model.objects.get(pk=pk)
+        except self.model.DoesNotExist:
+            instance = None
+        return {'instance': instance}
 
     ### Index view
 
@@ -286,7 +258,7 @@ class GenericViews(BaseViews):
 
     def remove_success(self, request, obj):
         if request.is_ajax():
-            return self.render_to_json({'status': 'DONE'})
+            return self.render_to_json({'status': 'OK'})
         else:
             return redirect('../..')
     
