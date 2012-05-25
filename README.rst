@@ -120,7 +120,7 @@ existing ones.
 
 Than you need to register custom views in urls.py:
 
-::
+.. code-block:: python
 
     from smarter import SmarterSite
     from myapp.views import PageViews
