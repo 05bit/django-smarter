@@ -150,3 +150,36 @@ Example::
         @method_decorator(login_required)
         def add_view(self, *args, **kwargs):
             return super(Views, self).add_view(*args, **kwargs)
+
+Checking permissions
+~~~~~~~~~~~~~~~~~~~~
+
+There's a special method ``check_permissions`` which is invoked
+from generic views.
+
+It receives keyword arguments depending on processed view:
+
+  * for ``add`` action no extra arguments is passed, but if you
+    define ``form_params_add()`` result will be passed as keyword
+    arguments
+  * for ``edit`` action ``instance`` argument is passed, and
+    also optionally ``form_params_edit()`` result is passed
+  * for ``details`` and ``remove`` actions ``obj`` argument is passed
+
+Example::
+
+    from django.core.exceptions import PermissionDenied
+    from smarter.views import GenericViews
+
+    class Views(GenericViews):
+
+        def check_permissions(self, **kwargs):
+            if self.action == 'add':
+                if not self.request.is_superuser:
+                    raise PermissionDenied
+
+            if self.action == 'edit':
+                obj = kwargs['obj']
+                if obj.owner != self.request.user:
+                    raise PermissionDenied
+

@@ -1,5 +1,6 @@
 #-*- coding: utf-8 -*-
 from django.core import serializers
+from django.conf.urls.defaults import patterns
 from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse, Http404
 from django.shortcuts import redirect, render_to_response, get_object_or_404
@@ -7,7 +8,6 @@ from django.template.loader import select_template
 from django.template import Context, RequestContext
 from django.utils import simplejson
 from django.utils.functional import update_wrapper
-
 
 class BaseViews(object):
     """
@@ -43,31 +43,53 @@ class BaseViews(object):
     ### URLs
 
     @classmethod
-    def as_urls(cls, name_prefix=None, view_class=None):
-        handler = cls()
-        handler.view_class = view_class or cls
-        handler.name_prefix = name_prefix
-        return handler.urls()
+    def as_urls(cls, name_prefix=None):
+        """
+        Returns all url patterns defined in urls_base()
+        ans urls_custom().
 
-    def urls(self):
-        from django.conf.urls.defaults import patterns
+        URSs names are prefixed with ``name_prefix``.
+        """
+        self = cls()
+        self.view_class = cls
+        self.name_prefix = name_prefix
         urlpatterns = patterns('')
         for u in [self.urls_base(), self.urls_custom()]:
             if u: urlpatterns += u
         return urlpatterns
 
     def urls_base(self):
+        """
+        Define generic urls here. Method should return
+        list or tuple of url definitions.
+        """
         raise NotImplemented
 
     def urls_custom(self):
+        """
+        Define custom urls here. Method should return
+        list or tuple of url definitions.
+        """
         return None
 
     def url(self, schema, action):
+        """
+        Returns url definition by schema and action.
+        """
         from django.conf.urls.defaults import url
         return url(schema, self.as_view(action), name=self.url_name(action))
     
     def url_name(self, action):
         return ''.join((self.name_prefix, action))
+
+    ### Permissions
+
+    def check_permissions(self, **kwargs):
+        """
+        Will raise django.core.exceptions.PermissionDenied exception if
+        action not allowed. By default does nothing.
+        """
+        pass
 
     ### Response
     
@@ -110,14 +132,17 @@ class GenericViews(BaseViews):
     ### URLs
 
     @classmethod
-    def as_urls(cls, model=None, name_prefix=None, view_class=None):
-        handler = cls()
-        handler.model = model or cls.model
-        handler.view_class = view_class or cls
-        handler.name_prefix = name_prefix or '%s-%s-' % (
-            handler.model._meta.app_label,
-            handler.model._meta.object_name.lower())
-        return handler.urls()
+    def as_urls(cls, model=None, name_prefix=None):
+        self = cls()
+        self.model = model or cls.model
+        self.view_class = cls
+        self.name_prefix = name_prefix or '%s-%s-' % (
+            self.model._meta.app_label,
+            self.model._meta.object_name.lower())
+        urlpatterns = patterns('')
+        for u in [self.urls_base(), self.urls_custom()]:
+            if u: urlpatterns += u
+        return urlpatterns
 
     def urls_base(self):
         return (self.url(r'^$', 'index'),
@@ -168,10 +193,10 @@ class GenericViews(BaseViews):
     ### Add view
 
     def add_view(self, request, *args, **kwargs):
-        action = self.action
         form_params = self.get_form_params()
+        self.check_permissions(**form_params)
         if request.method == 'POST':
-            form = self.get_form(action=action,
+            form = self.get_form(action=self.action,
                                 data=request.POST,
                                 files=request.FILES,
                                 **form_params)
@@ -179,7 +204,7 @@ class GenericViews(BaseViews):
                 instance = self.save_form(form)
                 return self.add_success(request, instance)
         else:
-            form = self.get_form(action=action, **form_params)
+            form = self.get_form(action=self.action, **form_params)
         context = {'form': form}
         return self.render_to_response(context)
     
@@ -196,10 +221,10 @@ class GenericViews(BaseViews):
         Generic update view: get object by 'pk' and edit
         it using standard ModelForm.
         """
-        action = self.action
         form_params = self.get_form_params()
+        self.check_permissions(**form_params)
         if request.method == 'POST':
-            form = self.get_form(action=action,
+            form = self.get_form(action=self.action,
                                 data=request.POST,
                                 files=request.FILES,
                                 **form_params)
@@ -207,7 +232,7 @@ class GenericViews(BaseViews):
                 instance = self.save_form(form)
                 return self.edit_success(request, instance)
         else:
-            form = self.get_form(action=action, **form_params)
+            form = self.get_form(action=self.action, **form_params)
         context = {'form': form}
         return self.render_to_response(context)
 
@@ -227,7 +252,8 @@ class GenericViews(BaseViews):
 
     ### Index view
 
-    def index_view(self, request, *args, **kwargs):
+    def index_view(self, request):
+        self.check_permissions()
         objects_list = self.model.objects.all()
         return self.render_to_response({'objects_list': objects_list})
 
@@ -239,6 +265,7 @@ class GenericViews(BaseViews):
             obj = self.model.objects.get(pk=pk)
         except self.model.DoesNotExist:
             raise Http404
+        self.check_permissions(obj=obj)
         return self.render_to_response({'obj': obj})
 
     ### Remove view
@@ -246,6 +273,7 @@ class GenericViews(BaseViews):
     def remove_view(self, request, *args, **kwargs):
         pk = self.kwargs['pk']
         obj = get_object_or_404(self.model, pk=pk)
+        self.check_permissions(obj=obj)
         if request.method == 'POST':
             obj.delete()
             return self.remove_success(request, obj)

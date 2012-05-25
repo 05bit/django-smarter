@@ -11,14 +11,11 @@ class SmarterSite(object):
 
     @property
     def urls(self):
-        urlpatterns = None
+        urlpatterns = patterns('')
         for item in self.registered:
-            u = patterns('', url('^' + item['base_url'],
-                                include(item['urls'])))
-            if urlpatterns is None:
-                urlpatterns = u
-            else:
-                urlpatterns += u
+            urlpatterns += patterns('',
+                url('^' + item['base_url'], include(item['urls']))
+            )
         return urlpatterns
 
     def register(self, model_or_views, generic_views=GenericViews,
