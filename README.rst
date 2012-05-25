@@ -12,19 +12,19 @@ Installation
 ------------
 
 Requirements:
-	- Django >= 1.3
+    - Django >= 1.3
 
 To install::
-	
-	pip install django-smarter
+    
+    pip install django-smarter
 
 Then add ``smarter`` to your ``INSTALLED_APPS``::
 
-	INSTALLED_APPS = (
-		...
-		'smarter',
-		...
-	)
+    INSTALLED_APPS = (
+        ...
+        'smarter',
+        ...
+    )
 
 Getting started
 ---------------
@@ -36,12 +36,12 @@ Let’s define a simple model:
 
 ::
 
-	class Page(models.Model):
-		title = models.CharField(max_length=100)
-		text = models.TextField
+    class Page(models.Model):
+        title = models.CharField(max_length=100)
+        text = models.TextField
 
-		def __unicode__(self):
-			return self.title
+        def __unicode__(self):
+            return self.title
 
 Create generic views
 ~~~~~~~~~~~~~~~~~~~~
@@ -52,17 +52,17 @@ In your urls.py:
 
 ::
 
-	from smarter import SmarterSite
-	from myapp.models import Page
+    from smarter import SmarterSite
+    from myapp.models import Page
 
-	site = SmarterSite()
-	site.register(Page)
+    site = SmarterSite()
+    site.register(Page)
 
-	urlpatterns = patterns('',
-		url(r'^', include(site.urls)),
+    urlpatterns = patterns('',
+        url(r'^', include(site.urls)),
 
-		# other urls ...
-	)
+        # other urls ...
+    )
 
 This will create generic views for Page model, accessed by urls:
 
@@ -99,40 +99,40 @@ existing ones.
 
 ::
 
-	from django.shortcuts import get_object_or_404
-	from smarter.views import GenericViews
-	from myapp.models import Page
+    from django.shortcuts import get_object_or_404
+    from smarter.views import GenericViews
+    from myapp.models import Page
 
-	class PageViews(GenericViews):
-		model = Page
+    class PageViews(GenericViews):
+        model = Page
 
-		def urls_custom(self):
-			return [
-				self.url(r'^(?P<pk>\d+)/bookmark/$', 'bookmark')
-			]
+        def urls_custom(self):
+            return [
+                self.url(r'^(?P<pk>\d+)/bookmark/$', 'bookmark')
+            ]
 
-		def bookmark_view(self, request, pk):
-			obj = get_object_or_404(page, pk=pk)
-			# do some stuff for bookmarking ...
-			context = {'obj': obj}
-			# will render to myapp/page_bookmark.html
-			return self.render_to_response(context)
+        def bookmark_view(self, request, pk):
+            obj = get_object_or_404(page, pk=pk)
+            # do some stuff for bookmarking ...
+            context = {'obj': obj}
+            # will render to myapp/page_bookmark.html
+            return self.render_to_response(context)
 
 Than you need to register custom views in urls.py:
 
 ::
 
-	from smarter import SmarterSite
-	from myapp.views import PageViews
+    from smarter import SmarterSite
+    from myapp.views import PageViews
 
-	site = SmarterSite()
-	site.register(PageViews)
+    site = SmarterSite()
+    site.register(PageViews)
 
-	urlpatterns = patterns('',
-		url(r'^', include(site.urls)),
+    urlpatterns = patterns('',
+        url(r'^', include(site.urls)),
 
-		# other urls ...
-	)
+        # other urls ...
+    )
 
 Applying decorators
 ~~~~~~~~~~~~~~~~~~~
@@ -141,12 +141,12 @@ Assume, you'd like to add ``login_required`` decorator to views in your project.
 
 Example::
 
-	from django.contrib.auth.decorators import login_required
-	from django.utils.decorators import method_decorator
-	from smarter.views import GenericViews
+    from django.contrib.auth.decorators import login_required
+    from django.utils.decorators import method_decorator
+    from smarter.views import GenericViews
 
-	class Views(GenericViews):
+    class Views(GenericViews):
 
-		@method_decorator(login_required)
-		def add_view(self, *args, **kwargs):
-			return super(Views, self).add_view(*args, **kwargs)
+        @method_decorator(login_required)
+        def add_view(self, *args, **kwargs):
+            return super(Views, self).add_view(*args, **kwargs)
