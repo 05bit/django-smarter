@@ -52,12 +52,8 @@ class BaseViews(object):
     def urls(self):
         from django.conf.urls.defaults import patterns
         urlpatterns = patterns('')
-        base = self.urls_base()
-        if base:
-            urlpatterns += patterns('', *base)
-        custom = self.urls_custom()
-        if custom:
-            urlpatterns += patterns('', *custom)
+        for u in [self.urls_base(), self.urls_custom()]:
+            if u: urlpatterns += u
         return urlpatterns
 
     def urls_base(self):
