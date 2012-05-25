@@ -99,7 +99,6 @@ existing ones.
 
 ::
 
-	from django.conf.urls.defaults import patterns, url, include
 	from django.shortcuts import get_object_or_404
 	from smarter.views import GenericViews
 	from myapp.models import Page
@@ -107,14 +106,10 @@ existing ones.
 	class PageViews(GenericViews):
 		model = Page
 
-		@property
-		def urlpatterns(self):
-			urlatterns = super(PageViews, self).urlpatterns + patterns('',
-				url(r'^(?P<pk>\d+)/bookmark/$',
-					self.as_view('bookmark'),
-					name=self.url_name('bookmark')),
-			)
-			return urlatterns
+		def urls_custom(self):
+			return [
+				self.url(r'^(?P<pk>\d+)/bookmark/$', 'bookmark')
+			]
 
 		def bookmark_view(self, request, pk):
 			obj = get_object_or_404(page, pk=pk)
