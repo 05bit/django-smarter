@@ -162,8 +162,8 @@ It receives keyword arguments depending on processed view:
   * for ``add`` action no extra arguments is passed, but if you
     define ``form_params_add()`` result will be passed as keyword
     arguments
-  * for ``edit`` action ``instance`` argument is passed, and
-    also optionally ``form_params_edit()`` result is passed
+  * for ``edit`` action ``instance`` argument is passed, actually
+    ``form_params_edit()`` result is passed
   * for ``details`` and ``remove`` actions ``obj`` argument is passed
 
 Example::
@@ -179,7 +179,7 @@ Example::
                     raise PermissionDenied
 
             if self.action == 'edit':
-                obj = kwargs['obj']
+                obj = kwargs['instance']
                 if obj.owner != self.request.user:
                     raise PermissionDenied
 
