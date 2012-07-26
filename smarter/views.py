@@ -234,7 +234,7 @@ class GenericViews(BaseViews):
         else:
             form = self.get_form(action=self.action, **form_params)
         context = {'form': form}
-        if form.instance:
+        if hasattr(form,'instance'):
             context['obj'] = form.instance
         return self.render_to_response(context)
 
