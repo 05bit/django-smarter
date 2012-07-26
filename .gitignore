@@ -7,3 +7,7 @@ Icon?
 dist/
 django_smarter.egg-info/
 docs/_build/
+
+#python virtualenvs
+virtualenv
+venv
