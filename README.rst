@@ -18,7 +18,9 @@ To install::
     
     pip install django-smarter
 
-Then add ``smarter`` to your ``INSTALLED_APPS``::
+Then add ``smarter`` to your ``INSTALLED_APPS``:
+
+.. code:: python
 
     INSTALLED_APPS = (
         ...
@@ -34,7 +36,7 @@ Create your models
 
 Let’s define a simple model:
 
-::
+.. code:: python
 
     class Page(models.Model):
         title = models.CharField(max_length=100)
@@ -50,7 +52,7 @@ Now you can create generic views for the model.
 
 In your urls.py:
 
-::
+.. code:: python
 
     from smarter import SmarterSite
     from myapp.models import Page
@@ -97,7 +99,7 @@ Override views
 You can subclass views class and add new view methods or override
 existing ones.
 
-::
+.. code:: python
 
     from django.shortcuts import get_object_or_404
     from smarter.views import GenericViews
@@ -120,7 +122,7 @@ existing ones.
 
 Than you need to register custom views in urls.py:
 
-::
+.. code:: python
 
     from smarter import SmarterSite
     from myapp.views import PageViews
@@ -139,7 +141,7 @@ Applying decorators
 
 Assume, you'd like to add ``login_required`` decorator to views in your project. You may subclass from ``GenericViews`` and use ``method_decorator`` helper for that.
 
-Example::
+.. code:: python
 
     from django.contrib.auth.decorators import login_required
     from django.utils.decorators import method_decorator
@@ -166,7 +168,7 @@ It receives keyword arguments depending on processed view:
     ``form_params_edit()`` result is passed
   * for ``details`` and ``remove`` actions ``obj`` argument is passed
 
-Example::
+.. code:: python
 
     from django.core.exceptions import PermissionDenied
     from smarter.views import GenericViews
