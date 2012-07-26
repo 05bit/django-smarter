@@ -45,10 +45,11 @@ class SimpleTest(TestCase):
         self.assertTrue(in_patterns('testmodel/1/edit/')) #edit
         self.assertTrue(in_patterns('testmodel/2/')) #details
         self.assertTrue(in_patterns('testmodel/2/remove/')) #remove
-        #site.unregister(TestModel)
+        #site.unregister(TestModel) #still unimplemented
         
-        'final sanity check' #can't because site.unregister is not implemented just yet
+        'final sanity check'
         #self.assertEqual(len(site.urls), 0)
+        #will fail because unregister() is still unimplemented
 
 
     def test_generic_views(self):
