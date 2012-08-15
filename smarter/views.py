@@ -146,6 +146,7 @@ class GenericViews(BaseViews):
 
     def urls_base(self):
         return (self.url(r'^$', 'index'),
+                self.url(r'^mine$', 'mine'),
                 self.url(r'^add/$', 'add'),
                 self.url(r'^(?P<pk>\d+)/$', 'details'),
                 self.url(r'^(?P<pk>\d+)/edit/$', 'edit'),
@@ -258,6 +259,16 @@ class GenericViews(BaseViews):
         self.check_permissions()
         objects_list = self.model.objects.all()
         return self.render_to_response({'objects_list': objects_list})
+
+    ### Mine view
+
+    def mine_view(self, request):
+        self.check_permissions()
+        objects_list = []
+        if 'owner' in [x.name for x in self.model._meta.fields]: # linear lookups are awesome =/
+            objects_list = self.model.objects.filter(owner=request.user)
+        return self.render_to_response({'objects_list': objects_list})
+
 
     ### Object view
 
