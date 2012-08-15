@@ -206,7 +206,8 @@ class GenericViews(BaseViews):
                 return self.add_success(request, instance)
         else:
             form = self.get_form(action=self.action, **form_params)
-        context = {'form': form}
+        embed = request.REQUEST.get('embed', False)
+        context = {'form': form, 'embed': embed}
         return self.render_to_response(context)
     
     def add_success(self, request, instance):
@@ -234,7 +235,8 @@ class GenericViews(BaseViews):
                 return self.edit_success(request, instance)
         else:
             form = self.get_form(action=self.action, **form_params)
-        context = {'form': form}
+        embed = request.REQUEST.get('embed', False)
+        context = {'form': form, 'embed': embed}
         if hasattr(form,'instance'):
             context['obj'] = form.instance
         return self.render_to_response(context)
