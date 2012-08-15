@@ -265,7 +265,7 @@ class GenericViews(BaseViews):
     def mine_view(self, request):
         self.check_permissions()
         objects_list = []
-        if 'owner' in [x.name for x in self.model._meta.fields]: # linear lookups are awesome =/
+        if request.user.is_authenticated() and 'owner' in [x.name for x in self.model._meta.fields]: # linear lookups are awesome =/
             objects_list = self.model.objects.filter(owner=request.user)
         return self.render_to_response({'objects_list': objects_list})
 
