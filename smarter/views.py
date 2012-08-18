@@ -209,6 +209,7 @@ class GenericViews(BaseViews):
             form = self.get_form(action=self.action,
                                 data=request.POST,
                                 files=request.FILES,
+                                request = request,
                                 **form_params)
             if form.is_valid():
                 instance = self.save_form(form)
@@ -246,6 +247,7 @@ class GenericViews(BaseViews):
             form = self.get_form(action=self.action,
                                 data=request.POST,
                                 files=request.FILES,
+                                request = request,
                                 **form_params)
             if form.is_valid():
                 instance = self.save_form(form)
