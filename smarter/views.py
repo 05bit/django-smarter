@@ -8,6 +8,7 @@ from django.template.loader import select_template
 from django.template import Context, RequestContext
 from django.utils import simplejson
 from django.utils.functional import update_wrapper
+from django.utils.html import escape
 
 class BaseViews(object):
     """
@@ -153,6 +154,8 @@ class GenericViews(BaseViews):
                 self.url(r'^(?P<pk>\d+)/remove/$', 'remove'))
 
     ### Form creator
+    def decorate_form(self, form):
+        pass
 
     def get_form(self, action, **kwargs):
         # pre-defined Form class
@@ -183,6 +186,9 @@ class GenericViews(BaseViews):
         help_text = form_opts.get('help_text', {})
         for k,v in help_text.items():
             form.fields[k].help_text = v
+        
+        self.decorate_form(form)
+        
         return form
     
     def get_form_params(self):
@@ -206,10 +212,18 @@ class GenericViews(BaseViews):
                                 **form_params)
             if form.is_valid():
                 instance = self.save_form(form)
+                #support admin style creation boxes
+                admin = request.REQUEST.get('admin', False)
+                if admin:
+                    return HttpResponse('<script type="text/javascript">opener.dismissAddAnotherPopup(window, "%s", "%s");</script>' % \
+                                (escape(instance._get_pk_val()), escape(instance)))
+
                 return self.add_success(request, instance)
         else:
             form = self.get_form(action=self.action, **form_params)
         embed = request.REQUEST.get('embed', False)
+
+
         context = {'form': form, 'embed': embed}
         return self.render_to_response(context)
     
