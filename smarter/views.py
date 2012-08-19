@@ -157,7 +157,7 @@ class GenericViews(BaseViews):
     def decorate_form(self, form):
         pass
 
-    def get_form(self, action, **kwargs):
+    def get_form(self, action, request, **kwargs):
         # pre-defined Form class
         if hasattr(self, 'form_class'):
             if issubclass(self.form_class,ModelForm):
@@ -221,7 +221,7 @@ class GenericViews(BaseViews):
 
                 return self.add_success(request, instance)
         else:
-            form = self.get_form(action=self.action, **form_params)
+            form = self.get_form(action=self.action, request=request, **form_params)
         embed = request.REQUEST.get('embed', False)
 
 
@@ -253,7 +253,7 @@ class GenericViews(BaseViews):
                 instance = self.save_form(form)
                 return self.edit_success(request, instance)
         else:
-            form = self.get_form(action=self.action, **form_params)
+            form = self.get_form(action=self.action, request=request, **form_params)
         embed = request.REQUEST.get('embed', False)
         context = {'form': form, 'embed': embed}
         if hasattr(form,'instance'):
