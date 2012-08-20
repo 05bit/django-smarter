@@ -229,10 +229,12 @@ class GenericViews(BaseViews):
         return self.render_to_response(context)
     
     def add_success(self, request, instance):
+        print request.REQUEST.get('next',None)
         if request.is_ajax():
             return self.render_to_json({'status': 'OK'})
         elif request.REQUEST.get('next',None):
-            redirect(request.REQUEST['next'])
+            print request.REQUEST.get('next',None)
+            return redirect(request.REQUEST['next'])
         else:
             return redirect(instance.get_absolute_url())
 
