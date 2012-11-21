@@ -295,6 +295,9 @@ class GenericViews(BaseViews):
                     self.model._meta.app_label,
                     self.model._meta.object_name.lower(),
                     self.action),
+                '%s_%s.html' % (
+                    self.model._meta.object_name.lower(),
+                    self.action),
                 'smarter/%s.html' % self.action]
 
 
