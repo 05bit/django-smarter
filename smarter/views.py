@@ -289,15 +289,13 @@ class GenericViews(BaseViews):
             return redirect('../..')
     
     ### Template names
-
+    
     def get_template_names(self):
-        return ['%s/%s_%s.html' % (
-                    self.model._meta.app_label,
-                    self.model._meta.object_name.lower(),
-                    self.action),
-                '%s_%s.html' % (
-                    self.model._meta.object_name.lower(),
-                    self.action),
-                'smarter/%s.html' % self.action]
+        app = self.model._meta.app_label
+        model = self.model._meta.object_name.lower()
+        action = self.action
+        return ['%s/%s_%s.html' % (app, model, action),
+                '%s_%s.html' % (model, action),
+                'smarter/%s.html' % action]
 
 
