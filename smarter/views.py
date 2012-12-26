@@ -160,10 +160,10 @@ class GenericViews(BaseViews):
     def get_form(self, action, request, **kwargs):
         # pre-defined Form class
         if hasattr(self, 'form_class'):
-            if isinstance(self.form_class, dict):
-                form_class = self.form_class.get(action, None)
-            else:
+            if issubclass(self.form_class,ModelForm):
                 form_class = self.form_class
+            else:
+                form_class = self.form_class.get(action, None) 
         else:
             form_class = None
         # form options
