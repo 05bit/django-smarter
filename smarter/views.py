@@ -231,8 +231,7 @@ class GenericViews(BaseViews):
     def add_success(self, request, instance):
         if request.is_ajax():
             return self.render_to_json({'status': 'OK'})
-        elif request.REQUEST.get('next',None):
-            print request.REQUEST.get('next',None)
+        elif request.REQUEST.get('next', None):
             return redirect(request.REQUEST['next'])
         else:
             return redirect(instance.get_absolute_url())
@@ -266,6 +265,8 @@ class GenericViews(BaseViews):
     def edit_success(self, request, instance):
         if request.is_ajax():
             return self.render_to_json({'status': 'OK'})
+        elif request.REQUEST.get('next', None):
+            return redirect(request.REQUEST['next'])
         else:
             return redirect(instance.get_absolute_url())
 
@@ -320,6 +321,8 @@ class GenericViews(BaseViews):
     def remove_success(self, request, obj):
         if request.is_ajax():
             return self.render_to_json({'status': 'OK'})
+        elif request.REQUEST.get('next', None):
+            return redirect(request.REQUEST['next'])
         else:
             return redirect('../..')
     
