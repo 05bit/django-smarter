@@ -8,7 +8,6 @@ from django.template.loader import select_template
 from django.template import Context, RequestContext
 from django.utils import simplejson
 from django.utils.functional import update_wrapper
-from django.utils.html import escape
 
 class BaseViews(object):
     """
@@ -147,23 +146,17 @@ class GenericViews(BaseViews):
 
     def urls_base(self):
         return (self.url(r'^$', 'index'),
-                self.url(r'^mine$', 'mine'),
                 self.url(r'^add/$', 'add'),
                 self.url(r'^(?P<pk>\d+)/$', 'details'),
                 self.url(r'^(?P<pk>\d+)/edit/$', 'edit'),
                 self.url(r'^(?P<pk>\d+)/remove/$', 'remove'))
 
     ### Form creator
-    def decorate_form(self, form):
-        pass
 
-    def get_form(self, action, request, **kwargs):
+    def get_form(self, action, **kwargs):
         # pre-defined Form class
         if hasattr(self, 'form_class'):
-            if issubclass(self.form_class,ModelForm):
-                form_class = self.form_class
-            else:
-                form_class = self.form_class.get(action, None) 
+            form_class = self.form_class.get(action, None)
         else:
             form_class = None
         # form options
@@ -186,9 +179,6 @@ class GenericViews(BaseViews):
         help_text = form_opts.get('help_text', {})
         for k,v in help_text.items():
             form.fields[k].help_text = v
-        
-        self.decorate_form(form)
-        
         return form
     
     def get_form_params(self):
@@ -209,31 +199,18 @@ class GenericViews(BaseViews):
             form = self.get_form(action=self.action,
                                 data=request.POST,
                                 files=request.FILES,
-                                request = request,
                                 **form_params)
             if form.is_valid():
                 instance = self.save_form(form)
-                #support admin style creation boxes
-                admin = request.REQUEST.get('admin', False)
-                if admin:
-                    return HttpResponse('<script type="text/javascript">opener.dismissAddAnotherPopup(window, "%s", "%s");</script>' % \
-                                (escape(instance._get_pk_val()), escape(instance)))
-
                 return self.add_success(request, instance)
         else:
-            form = self.get_form(action=self.action, request=request, **form_params)
-        embed = request.REQUEST.get('embed', False)
-
-
-        context = {'form': form, 'embed': embed}
+            form = self.get_form(action=self.action, **form_params)
+        context = {'form': form}
         return self.render_to_response(context)
     
     def add_success(self, request, instance):
         if request.is_ajax():
             return self.render_to_json({'status': 'OK'})
-        elif request.REQUEST.get('next',None):
-            print request.REQUEST.get('next',None)
-            return redirect(request.REQUEST['next'])
         else:
             return redirect(instance.get_absolute_url())
 
@@ -250,15 +227,13 @@ class GenericViews(BaseViews):
             form = self.get_form(action=self.action,
                                 data=request.POST,
                                 files=request.FILES,
-                                request = request,
                                 **form_params)
             if form.is_valid():
                 instance = self.save_form(form)
                 return self.edit_success(request, instance)
         else:
-            form = self.get_form(action=self.action, request=request, **form_params)
-        embed = request.REQUEST.get('embed', False)
-        context = {'form': form, 'embed': embed}
+            form = self.get_form(action=self.action, **form_params)
+        context = {'form': form}
         if hasattr(form,'instance'):
             context['obj'] = form.instance
         return self.render_to_response(context)
@@ -283,16 +258,6 @@ class GenericViews(BaseViews):
         self.check_permissions()
         objects_list = self.model.objects.all()
         return self.render_to_response({'objects_list': objects_list})
-
-    ### Mine view
-
-    def mine_view(self, request):
-        self.check_permissions()
-        objects_list = []
-        if request.user.is_authenticated() and 'owner' in [x.name for x in self.model._meta.fields]: # linear lookups are awesome =/
-            objects_list = self.model.objects.filter(owner=request.user)
-        return self.render_to_response({'objects_list': objects_list})
-
 
     ### Object view
 

@@ -3,7 +3,7 @@
 from os.path import join, dirname
 from setuptools import setup
 
-version = 0.5
+version = 0.4
 
 LONG_DESCRIPTION = """
 Django application for smarter application building.
