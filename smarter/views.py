@@ -63,7 +63,7 @@ class BaseViews(object):
         Define generic urls here. Method should return
         list or tuple of url definitions.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def urls_custom(self):
         """
@@ -94,7 +94,7 @@ class BaseViews(object):
     ### Response
     
     def get_template_names(self):
-        raise NotImplemented
+        raise NotImplementedError
     
     def update_context(self, context):
         return context

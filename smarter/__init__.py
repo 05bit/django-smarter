@@ -50,7 +50,7 @@ class SmarterSite(object):
             })
 
     def unregister(self, model_or_views):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 
