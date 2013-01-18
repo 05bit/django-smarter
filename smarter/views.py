@@ -247,26 +247,32 @@ class GenericViews(BaseViews):
     def form_params_edit(self):
         pk = self.kwargs['pk']
         try:
-            instance = self.model.objects.get(pk=pk)
+            instance = self.get_object(pk)
         except self.model.DoesNotExist:
             instance = None
         return {'instance': instance}
 
     ### Index view
+    
+    def get_objects_list(self):
+        return self.model.objects.all()
 
     def index_view(self, request):
         self.check_permissions()
-        objects_list = self.model.objects.all()
+        objects_list = self.get_objects_list()
         return self.render_to_response({'objects_list': objects_list})
 
     ### Object view
-
-    def details_view(self, request, *args, **kwargs):
-        pk = self.kwargs['pk']
+    
+    def get_object(self, pk):
         try:
-            obj = self.model.objects.get(pk=pk)
+            return self.get_objects_list().get(pk=pk)
         except self.model.DoesNotExist:
             raise Http404
+    
+    def details_view(self, request, *args, **kwargs):
+        pk = self.kwargs['pk']
+        obj = self.get_object(pk)
         self.check_permissions(obj=obj)
         return self.render_to_response({'obj': obj})
 
@@ -274,10 +280,10 @@ class GenericViews(BaseViews):
 
     def remove_view(self, request, *args, **kwargs):
         pk = self.kwargs['pk']
-        obj = get_object_or_404(self.model, pk=pk)
+        obj = self.get_object(pk)
         self.check_permissions(obj=obj)
         if request.method == 'POST':
-            obj.delete()
+            self.remove_object(obj)
             return self.remove_success(request, obj)
         else:
             return self.render_to_response({'obj': obj})
@@ -287,6 +293,9 @@ class GenericViews(BaseViews):
             return self.render_to_json({'status': 'OK'})
         else:
             return redirect('../..')
+    
+    def remove_object(self, obj):
+        obj.delete()
     
     ### Template names
     
