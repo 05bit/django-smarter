@@ -161,12 +161,9 @@ from generic views.
 
 It receives keyword arguments depending on processed view:
 
-  * for ``add`` action no extra arguments is passed, but if you
-    define ``form_params_add()`` result will be passed as keyword
-    arguments
-  * for ``edit`` action ``instance`` argument is passed, actually
-    ``form_params_edit()`` result is passed
-  * for ``details`` and ``remove`` actions ``obj`` argument is passed
+- for ``add`` action no extra arguments is passed, but if you define ``form_params_add()`` result will be passed as keyword arguments
+- for ``edit`` action ``instance`` argument is passed, actually ``form_params_edit()`` result is passed
+- for ``details`` and ``remove`` actions ``obj`` argument is passed
 
 .. code:: python
 
@@ -185,3 +182,22 @@ It receives keyword arguments depending on processed view:
                 if obj.owner != self.request.user:
                     raise PermissionDenied
 
+
+Hooks
+~~~~~
+
+What if you don't want to use ``YourModel.objects.all()``? What if you want to call a function or send a signal every time someone visits a certain object's detail page?
+
+If it's a small change or addition, you can use the following hooks:
+
+- ``get_objects_list(self, action)``, which returns a queryset. It's used directly by ``index_view``, and indirectly by the other views, because ``get_object`` depends on it (read below). The default implementation just returns ``self.model.objects.all()``
+
+- ``get_object(self, pk)``, which will be used to get the object for remove_view, details_view and edit_view. The default implementation just returns ``self.get_objects_list().get(pk=pk)`` or raises ``Http404``.
+
+- ``remove_object(self, obj)``, which deletes the object. The default implementation calls obj.delete().
+
+- ``save_form(self, action, **kwargs)`` saves the form in both the ``edit`` and ``add`` views. 
+
+- ``get_form(self, form)``: in this method, you return a form for the ``edit`` and ``add`` view. It's usually a ``ModelForm``, but you can provide a form instance with a save() method, or hook into ``save_form``. The default implementation gets a form from the ``self.form_class`` dict, otherwise creates a ModelForm using modelform_factory.
+
+Don't forget you can get the current request through ``self.request``, and the current action (E.G. ``'index'`` or ``details``) is available in ``self.action``.
