@@ -1,5 +1,6 @@
 #-*- coding: utf-8 -*-
 from django.core import serializers
+from django.core.exceptions import PermissionDenied
 from django.conf.urls.defaults import patterns
 from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse, Http404
@@ -8,6 +9,7 @@ from django.template.loader import select_template
 from django.template import Context, RequestContext
 from django.utils import simplejson
 from django.utils.functional import update_wrapper
+
 
 class BaseViews(object):
     """
@@ -90,6 +92,12 @@ class BaseViews(object):
         action not allowed. By default does nothing.
         """
         pass
+
+    def deny(self):
+        """
+        Shortcut for raising PermissionDenied.
+        """
+        raise PermissionDenied
 
     ### Response
     
