@@ -8,6 +8,13 @@ Overview
 
 Well, it's mostly about CRUD-based applications - create, read, update and delete different objects, but is not limited to that. If you want admin-like application, but you need a full control on source, than ``django-smarter`` may fit your needs.
 
+Changes in v0.5
+---------------
+
+**Warning!** There are some backwards incompatible changes in v0.5
+
+Watch section `Customise views`_.
+
 Installation
 ------------
 
@@ -92,6 +99,48 @@ Index template has template variable ``objects_list``.
 All other templates have variable ``obj``.
 
 Edit and add templates have also template variable ``form``.
+
+Customise views
+~~~~~~~~~~~~~~~
+
+**Warning!** This section is new to v0.5 docs and the way of views customization is changed since 0.4.x.
+
+Here's example of view customization with ``options`` dict. Keys in ``options`` are action names, so you can customize any of available actions.
+
+.. code:: python
+
+    from smarter.views import GenericViews
+    from django import forms
+
+    class Views(GenericViews):
+        model = Page # some model
+
+        options = {
+            'add': {
+                # custom form class
+                'form': PageForm,
+
+                # custom fields widgets
+                'widgets': {
+                    'title': forms.HiddenInput()
+                },
+
+                # explicit form fields
+                'fields': ('title', 'text'),
+
+                # exclude fields
+                #'exclude': ('title',)
+                
+                # explicit custom template
+                'template': 'page/custom_add.html',
+
+                # help texts for fields
+                'help_text': {
+                    'title': 'Max. 100 chars',
+                }
+            },
+            #...
+        }
 
 Override views
 ~~~~~~~~~~~~~~
@@ -186,7 +235,7 @@ It receives keyword arguments depending on processed view:
 Hooks
 ~~~~~
 
-What if you don't want to use ``YourModel.objects.all()``? What if you want to call a function or send a signal every time someone visits a certain object's detail page?
+What if you don't want to use ``MyModel.objects.all()``? What if you want to call a function or send a signal every time someone visits a certain object's detail page?
 
 If it's a small change or addition, you can use the following hooks:
 

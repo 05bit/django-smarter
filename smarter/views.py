@@ -1,6 +1,7 @@
 #-*- coding: utf-8 -*-
 from django.core import serializers
 from django.core.exceptions import PermissionDenied
+from django.core.serializers.json import DjangoJSONEncoder
 from django.conf.urls.defaults import patterns
 from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse, Http404
@@ -27,7 +28,10 @@ class BaseViews(object):
         Each action corresponds to ``<action>_view`` method.
         """
         view_method_name = '%s_view' % action.replace('-', '_')
-        view_method = getattr(self.view_class, view_method_name)
+        try:
+            view_method = getattr(self.view_class, view_method_name)
+        except AttributeError:
+            view_method = getattr(self.view_class, 'process_form')
         def view(request, *args, **kwargs):
             handler = self.view_class()
             handler.action = action
@@ -109,7 +113,7 @@ class BaseViews(object):
 
     def render_to_json(self, context, **kwargs):
         if isinstance(context, (dict, list)):
-            r = simplejson.dumps(context)
+            r = simplejson.dumps(context, cls=DjangoJSONEncoder)
         else:
             r = serializers.serialize('json', context, **kwargs)
         return HttpResponse(r, mimetype="application/json")
@@ -137,6 +141,8 @@ class GenericViews(BaseViews):
         )
     """
 
+    options = {}
+
     ### URLs
 
     @classmethod
@@ -162,32 +168,24 @@ class GenericViews(BaseViews):
     ### Form creator
 
     def get_form(self, action, **kwargs):
-        # pre-defined Form class
-        if hasattr(self, 'form_class'):
-            form_class = self.form_class.get(action, None)
-        else:
-            form_class = None
-        # form options
-        if hasattr(self, 'form_opts'):
-            form_opts = self.form_opts.get(action, {})
-        else:
-            form_opts = {}
-        # make form class
-        if not form_class:
-            modelform_opts = {}
+        options = self.options.get(action, {})
+        form_class = options.get('form', ModelForm)
+        if issubclass(form_class, ModelForm):
+            modeloptions = {}
             for k in ('fields', 'exclude', 'formfield_callback'):
-                modelform_opts[k] = form_opts.get(k, None)
-            modelform_opts['form'] = form_opts.get('form', ModelForm)
-            form_class = modelform_factory(model=self.model, **modelform_opts)
-        # create form instance
+                modeloptions[k] = options.get(k, None)
+            modeloptions['form'] = form_class
+            form_class = modelform_factory(model=self.model, **modeloptions)
         form = form_class(**kwargs)
-        widgets = form_opts.get('widgets', {})
+        widgets = options.get('widgets', {})
         for k,v in widgets.items():
             form.fields[k].widget = v
-        help_text = form_opts.get('help_text', {})
+        help_text = options.get('help_text', {})
         for k,v in help_text.items():
             form.fields[k].help_text = v
         return form
+
+    ### Generic form processing
     
     def get_form_params(self):
         params_method = 'form_params_%s' % self.action.replace('-', '_')
@@ -197,7 +195,49 @@ class GenericViews(BaseViews):
     
     def save_form(self, form):
         return form.save()
-    
+
+    def process_form(self, request, *args, **kwargs):
+        """
+        Generic form processing: render form on GET request
+        and validate/save form on POST request.
+
+        After successful form saving <action>_success()
+        callback is invoked.
+        """
+        form_params = self.get_form_params()
+        self.check_permissions(**form_params)
+        if request.method == 'POST':
+            form = self.get_form(action=self.action,
+                                data=request.POST,
+                                files=request.FILES,
+                                **form_params)
+            if form.is_valid():
+                result = self.save_form(form)
+                return self._process_form_success(request, result)
+        else:
+            form = self.get_form(action=self.action, **form_params)
+        context = {'form': form}
+        return self.render_to_response(context)
+
+    def _process_form_success(self, request, result):
+        """
+        Invoke form processing callback <action>_success().
+
+        Arguments:
+
+            1. ``request``
+            2. ``result`` is ``save_form()`` method result.
+        """
+        success_method = '%s_success' % self.action.replace('-', '_')
+        if hasattr(self, success_method):
+            return getattr(self, success_method)(request, result)
+        else:
+            if request.is_ajax():
+                return self.render_to_json({'status': 'OK'})
+            else:
+                # TODO: design decision required
+                return redirect(result.get_absolute_url())
+
     ### Add view
 
     def add_view(self, request, *args, **kwargs):
@@ -306,7 +346,16 @@ class GenericViews(BaseViews):
         obj.delete()
     
     ### Template names
-    
+
+    def update_context(self, context):
+        model_title = self.model._meta.verbose_name.title()
+        model_title_plural = self.model._meta.verbose_name_plural.title()
+        context.update({
+            'model_title': model_title,
+            'model_title_plural': model_title_plural,
+        })
+        return context
+
     def get_template_names(self):
         app = self.model._meta.app_label
         model = self.model._meta.object_name.lower()
