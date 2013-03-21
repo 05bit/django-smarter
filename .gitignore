@@ -1,13 +1,13 @@
+.DS_Store*
+Icon?
+Thumbs.db
+
 *.pyc
 *.pyo
 
-.DS_Store*
-Icon?
+example/example/example.db
 
 dist/
-django_smarter.egg-info/
 docs/_build/
+django_smarter.egg-info/
 
-#python virtualenvs
-virtualenv
-venv
