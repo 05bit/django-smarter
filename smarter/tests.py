@@ -1,34 +1,28 @@
 """
 Unit tests for django-smarter.
-
 """
-
 import itertools
-
 from django.test import TestCase
 from django.http import HttpRequest
-from django.conf.urls import patterns
+from django.conf.urls import patterns, include, url
 from django.db import models
 from django.core.urlresolvers import Resolver404
 
-from smarter import SmarterSite
-
+import smarter
 from views import BaseViews, GenericViews
 
 
 class SimpleTest(TestCase):
-    def test_site(self):
-        '''
-        Test registering, unregistering and urls
-        
-        '''
-        
-        site = SmarterSite()
+    def test_site_urls(self):
+        """
+        Test registering and unregistering urls.
+        """
+        site = smarter.Site()
+        urlpatterns = patterns('')
+
         class TestModel(models.Model):
             test_field = models.TextField()
-        
-        urlpatterns = []
-        
+
         def in_patterns(url):
             for pattern in urlpatterns:
                 try:
@@ -37,14 +31,15 @@ class SimpleTest(TestCase):
                 except Resolver404:
                     pass
             return False
-        
+
         site.register(TestModel)
         urlpatterns = patterns('', *site.urls)
-        self.assertTrue(in_patterns('testmodel/')) #index
-        self.assertTrue(in_patterns('testmodel/add/')) #add
-        self.assertTrue(in_patterns('testmodel/1/edit/')) #edit
-        self.assertTrue(in_patterns('testmodel/2/')) #details
-        self.assertTrue(in_patterns('testmodel/2/remove/')) #remove
+        self.assertTrue(in_patterns('testmodel/')) # index
+        self.assertTrue(in_patterns('testmodel/add/')) # add
+        self.assertTrue(in_patterns('testmodel/1/edit/')) # edit
+        self.assertTrue(in_patterns('testmodel/2/')) # details
+        self.assertTrue(in_patterns('testmodel/2/remove/')) # remove
+        self.assertTrue(not in_patterns('testmodel/lalala/')) # no such url
         #site.unregister(TestModel) #still unimplemented
         
         'final sanity check'

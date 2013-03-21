@@ -205,7 +205,7 @@ Action names
 Actions are named so they can be mapped to views methods and they should not override reserved attributes and methods, to they:
 
 1. **must contain only** latin symbols and '_' or '-', **no spaces**
-2. **can't** be in this list: 'model', 'defaults', 'options', 'resolve', 'deny'
+2. **can't** be in this list: 'model', 'defaults', 'options', 'deny'
 3. **can't** start with '-', '_' or 'get\_'
 4. **can't** contain '`__`'
 
@@ -235,11 +235,11 @@ smarter.GenericViews
 | **options**
 |  - class property, dict for views configration, each key corresponds to single action like 'add', 'edit', 'remove' etc.
 |
-| **resolve**\(``action, *args, **kwargs``)
-|  - method, resolves url for given action name
-|
 | **deny**\(``request, message=None``)
 |  - method, is called when action is not permitted for user, raises ``PermissionDenied`` exception or can return ``HttpResponse`` object
+|
+| **get_url**\(``action, *args, **kwargs``)
+|  - method, returns url for given action name
 |
 | **get_form**\(``request, **kwargs``)
 |  - method, returns form for request
@@ -329,7 +329,7 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
             # Custom redirect to pages index on success
             if instance:
                 # Success, redirecting!
-                return redirect(self.resolve('index'))
+                return redirect(self.get_url('index'))
             else:
                 # Fail, form has errors
                 return render(request, self.get_template(request), {'form': form})
