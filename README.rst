@@ -1,7 +1,9 @@
 django-smarter
 ==============
 
-**Smarter** way of getting declarative style generic views in Django project. It's a simple one-file helper for painless adding form-based CRUD (create-read-update-delete) views to your application. If you'll feel pain, that's may be not this case, so don't get smarter that way! :)
+**Smarter** way of getting declarative style generic views in Django.
+
+It's a simple one-file helper for painless adding form-based CRUD (create-read-update-delete) views to your application. If you'll feel pain, that's may be not this case, so don't get smarter that way! :)
 
 So many times we have to write:
 
@@ -41,8 +43,16 @@ Changes in v1.0
 
 API is finally and completely changed since v0.6 release.
 
-We've made a "quantum jump" by breaking old-and-not-so-good API to new solid nice one and hope you'll like it.
+We've made a "quantum jump" by breaking old-and-not-so-good API to new one - solid and nice. Hope you'll like it.
 
+
+Contributors
+------------
+
+* `Fabio Santos <https://github.com/fabiosantoscode>`_
+* `Sameer Al-Sakran <https://github.com/salsakran>`_
+
+Thank you comrades! :)
 
 Installation
 ------------
@@ -132,10 +142,63 @@ Each url by default is mapped to view method and template.
 API reference
 -------------
 
+Options
+~~~~~~~
+
+Options is a dict class property, containing actions names as keys and actions parameters as values.
+
+Action parameters structure is:
+
+.. sourcecode:: python
+
+    {
+        'url':          <string for url pattern>,
+        'form':         <form class>,
+        'decorators':   <tuple/list of decorators>,
+        'fields':       <tuple/list of form fields>,
+        'exclude':      <tuple/list of excluded form fields>,
+        'initial':      <tuple/list of form fields initialized by request.GET>,
+        'permissions':  <tuple/list of required permissions>,
+        'widgets':      <dict for widgets overrides>,
+        'help_text':    <dict for help texts overrides>,
+        'required':     <dict for required fields overrides>,
+        'template':     <string template name>,
+    }
+
+Of course, every key here is optional.
+
+So, here's how options can be defined for views:
+
+.. sourcecode:: python
+
+    import smarter
+
+    class Views(smarter.GenericViews):
+        model = <model>
+
+        defaults = <default parameters>
+
+        options = {
+            '<action 1>': <parameters 1>,
+            '<action 2>': <parameters 2>
+        }
+
+Action names
+~~~~~~~~~~~~
+
+Actions are named so they can be mapped to views methods and they should not override reserved attributes and methods, to they:
+
+1. **must contain only** latin symbols and '_' or '-', **no spaces**
+2. **can't** be in this list: 'model', 'defaults', 'options', 'resolve', 'deny'
+3. **can't** start with '-', '_' or 'get\_'
+4. **can't** contain '`__`'
+
+Sure, you'll get an exception if something goes wrong with that. We're following `'errors should never pass silently'` here.
+
 smarter.Site
 ~~~~~~~~~~~~
 
-| **Site**\(prefix=None)
+| **Site**\(prefix=None, delim='-')
 |  - constructor
 |
 | **register**\(model_or_views, base_url=None, prefix=None)
@@ -172,28 +235,22 @@ smarter.GenericViews
 |  - method, returns objects for request
 |
 | **get_template**\(``request_or_action``)
-|  - method, returns template name or sequence of template names for rendering by action name or per-request
+|  - method, returns template name or sequence of template names by action name or per-request
 |
 | **<action>**\(``request, **kwargs``)
 |  - method, 1st (starting) handler in default pipeline
 |
-| **<action>_perm**\(``request, **kwargs``)
+| **<action>__perm**\(``request, **kwargs``)
 |  - method, 2nd handler in default pipeline, checks permissions
 |
-| **<action>_form**\(``request, **kwargs``)
+| **<action>__form**\(``request, **kwargs``)
 |  - method, 3rd handler in default pipeline, manages form processing
 |
-| **<action>_save**\(``request, form, **kwargs``)
-|  - method, called from **<action>_form** when form is ready to save, saves the form and returns saved instance
+| **<action>__save**\(``request, form, **kwargs``)
+|  - method, called from **<action>__form** when form is ready to save, saves the form and returns saved instance
 |
-| **<action>_done**\(``request, **kwargs``)
+| **<action>__done**\(``request, **kwargs``)
 |  - method, 4th (last) view handler in default pipeline, performs render or redirect
-
-Options
-~~~~~~~
-
-sdfsd
-
 
 Pipeline
 ~~~~~~~~
@@ -206,20 +263,20 @@ The result is either **None** or **dict** or **HttpResponse** object:
 2. **dict** - result is passed to next pipeline method,
 3. **HttpResponse** - returned immidiately as view response.
 
-For example, 'edit' pipeline is:
+For example, '**edit**' action pipeline is:
 
-=========   =============================================
-  Method                       Result
-=========   =============================================
-edit        {'instance': instance}
-edit_perm   None or PermissionDenied exception is raised
-edit_form   {'instance': instance} *(success)*
-            or {'form': 'form'} *(fail)*
-edit_done   render template or redirect to
-            ``instance.get_absolute_url()``
-=========   =============================================
+==========  =====================================  =============================================
+  Method               Parameters                                 Result
+==========  =====================================  =============================================
+edit        ``request, pk``                        {'instance': instance}
+edit__perm  ``request, instance=None, **kwargs``   None or PermissionDenied exception is raised
+edit__form  ``request, instance=None, **kwargs``   {'instance': instance} *(success)*
+                                                   or {'form': 'form'} *(fail)*
+edit__done  ``request, instance=None, form=None``  render template or redirect to
+                                                   ``instance.get_absolute_url()``
+==========  =====================================  =============================================
 
-Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached using **options**.
+Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached with declarative style using **options**. If you're going too far with overriding views, that may mean you'd better write some views from scratch separate from "smarter".
 
 But for deeper understanding here's an example of custom pipeline for 'edit' action:
 
@@ -228,6 +285,7 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
     import smarter
 
     class PageViews(smarter.GenericViews):
+        model = Page
 
         def edit(request, pk=None):
             # Custom initial title
@@ -237,21 +295,21 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
                 'instance': self.get_object(pk=pk),
             }
 
-        def edit_perm(request, **kwargs):
+        def edit__perm(request, **kwargs):
             # Custom permission check
             instance = kwargs['instance']
             if instance.author != request.user:
                 return self.deny(request)
 
-        def edit_form(request, **kwargs):
+        def edit__form(request, **kwargs):
             # Actually, nothing custom here, it's totally generic
             form = self.get_form(request, **kwargs)
             if form.is_valid():
-                return {'instance': self.edit_save(request, form, **kwargs)}
+                return {'instance': self.edit__save(request, form, **kwargs)}
             else:
                 return {'form': form}
 
-        def edit_done(request, instance=None, form=None):
+        def edit__done(request, instance=None, form=None):
             # Custom redirect to pages index on success
             if instance:
                 # Success, redirecting!
@@ -272,155 +330,3 @@ Complete example
 
 | You may look at complete example source here:
 | https://github.com/05bit/django-smarter/tree/master/example
-
-
-Customise views
-~~~~~~~~~~~~~~~
-
-**Warning!** This section is new to v0.5 docs and the way of views customization is changed since 0.4.x.
-
-Here's example of view customization with ``options`` dict. Keys in ``options`` are action names, so you can customize any of available actions.
-
-.. code:: python
-
-    from smarter.views import GenericViews
-    from django import forms
-
-    class Views(GenericViews):
-        model = Page # some model
-
-        options = {
-            'add': {
-                # custom form class
-                'form': PageForm,
-
-                # custom fields widgets
-                'widgets': {
-                    'title': forms.HiddenInput()
-                },
-
-                # explicit form fields
-                'fields': ('title', 'text'),
-
-                # exclude fields
-                #'exclude': ('title',)
-                
-                # explicit custom template
-                'template': 'page/custom_add.html',
-
-                # help texts for fields
-                'help_text': {
-                    'title': 'Max. 100 chars',
-                }
-            },
-            #...
-        }
-
-Override views
-~~~~~~~~~~~~~~
-
-You can subclass views class and add new view methods or override
-existing ones.
-
-.. code:: python
-
-    from django.shortcuts import get_object_or_404
-    from smarter.views import GenericViews
-    from myapp.models import Page
-
-    class PageViews(GenericViews):
-        model = Page
-
-        def urls_custom(self):
-            return [
-                self.url(r'^(?P<pk>\d+)/bookmark/$', 'bookmark')
-            ]
-
-        def bookmark_view(self, request, pk):
-            obj = get_object_or_404(page, pk=pk)
-            # do some stuff for bookmarking ...
-            context = {'obj': obj}
-            # will render to myapp/page_bookmark.html
-            return self.render_to_response(context)
-
-Than you need to register custom views in urls.py:
-
-.. code:: python
-
-    from smarter import SmarterSite
-    from myapp.views import PageViews
-
-    site = SmarterSite()
-    site.register(PageViews)
-
-    urlpatterns = patterns('',
-        url(r'^', include(site.urls)),
-
-        # other urls ...
-    )
-
-Applying decorators
-~~~~~~~~~~~~~~~~~~~
-
-Assume, you'd like to add ``login_required`` decorator to views in your project. You may subclass from ``GenericViews`` and use ``method_decorator`` helper for that.
-
-.. code:: python
-
-    from django.contrib.auth.decorators import login_required
-    from django.utils.decorators import method_decorator
-    from smarter.views import GenericViews
-
-    class Views(GenericViews):
-
-        @method_decorator(login_required)
-        def add_view(self, *args, **kwargs):
-            return super(Views, self).add_view(*args, **kwargs)
-
-Checking permissions
-~~~~~~~~~~~~~~~~~~~~
-
-There's a special method ``check_permissions`` which is invoked
-from generic views.
-
-It receives keyword arguments depending on processed view:
-
-- for ``add`` action no extra arguments is passed, but if you define ``form_params_add()`` result will be passed as keyword arguments
-- for ``edit`` action ``instance`` argument is passed, actually ``form_params_edit()`` result is passed
-- for ``details`` and ``remove`` actions ``obj`` argument is passed
-
-.. code:: python
-
-    from django.core.exceptions import PermissionDenied
-    from smarter.views import GenericViews
-
-    class Views(GenericViews):
-
-        def check_permissions(self, **kwargs):
-            if self.action == 'add':
-                if not self.request.is_superuser:
-                    raise PermissionDenied
-
-            if self.action == 'edit':
-                obj = kwargs['instance']
-                if obj.owner != self.request.user:
-                    raise PermissionDenied
-
-
-Hooks
-~~~~~
-
-What if you don't want to use ``MyModel.objects.all()``? What if you want to call a function or send a signal every time someone visits a certain object's detail page?
-
-If it's a small change or addition, you can use the following hooks:
-
-- ``get_objects_list(self, action)``, which returns a queryset. It's used directly by ``index_view``, and indirectly by the other views, because ``get_object`` depends on it (read below). The default implementation just returns ``self.model.objects.all()``
-
-- ``get_object(self, pk)``, which will be used to get the object for remove_view, details_view and edit_view. The default implementation just returns ``self.get_objects_list().get(pk=pk)`` or raises ``Http404``.
-
-- ``remove_object(self, obj)``, which deletes the object. The default implementation calls obj.delete().
-
-- ``save_form(self, action, **kwargs)`` saves the form in both the ``edit`` and ``add`` views. 
-
-- ``get_form(self, form)``: in this method, you return a form for the ``edit`` and ``add`` view. It's usually a ``ModelForm``, but you can provide a form instance with a save() method, or hook into ``save_form``. The default implementation gets a form from the ``self.form_class`` dict, otherwise creates a ModelForm using modelform_factory.
-
-Don't forget you can get the current request through ``self.request``, and the current action (E.G. ``'index'`` or ``details``) is available in ``self.action``.
