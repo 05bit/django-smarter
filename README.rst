@@ -58,6 +58,7 @@ Installation
 ------------
 
 Requirements:
+
     - Django >= 1.3
 
 To install::
@@ -88,8 +89,9 @@ Let’s define a simple model:
 .. code:: python
 
     class Page(models.Model):
+        author = models.ForeignKey('auth.User')
         title = models.CharField(max_length=100)
-        text = models.TextField
+        text = models.TextField()
 
         def __unicode__(self):
             return self.title
@@ -142,12 +144,28 @@ Each url by default is mapped to view method and template.
 API reference
 -------------
 
+Actions
+~~~~~~~
+
+**Actions** are actually 'ids for views'. Well, each action has id like 'add', 'edit', 'bind-to-user' and is mapped to urls like '/add/', '/edit/', '/bind-to-user/'. And each action is bound to view method with underscores instead of '-'.
+
+``smarter.GenericViews`` class defines such actions by default:
+
+=======     =================   =========================
+Action      URL                 View method
+=======     =================   =========================
+index       /                   index(``request``)
+add         /add/               add(``request``)
+details     /``<pk>``/          details(``request, pk``)
+edit        /``<pk>``/edit/     edit(``request, pk``)
+remove      /``<pk>``/remove/   remove(``request, pk``)
+=======     =================   =========================
+
+
 Options
 ~~~~~~~
 
-Options is a dict class property, containing actions names as keys and actions parameters as values.
-
-Action parameters structure is:
+**Options** is a ``GenericViews.options`` class property, it's a dict containing actions names as keys and actions parameters as values. Parameters structure is:
 
 .. sourcecode:: python
 
@@ -165,9 +183,7 @@ Action parameters structure is:
         'template':     <string template name>,
     }
 
-Of course, every key here is optional.
-
-So, here's how options can be defined for views:
+Every key here is optional. So, here's how options can be defined for views:
 
 .. sourcecode:: python
 
