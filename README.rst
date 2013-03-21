@@ -1,48 +1,19 @@
 django-smarter
 ==============
 
-**Smarter** way of getting declarative style generic views in Django project. It's a simple one-file helper for painless adding form-based CRUD (create-read-update-delete) views to your application. If you'll feel pain, that's may be not this case, so don't get smarter that way! :)
+Django application for smarter CRUD-based applications building.
 
-So many times we have to write:
+Overview
+--------
 
-.. sourcecode:: python
+Well, it's mostly about CRUD-based applications - create, read, update and delete different objects, but is not limited to that. If you want admin-like application, but you need a full control on source, than ``django-smarter`` may fit your needs.
 
-    def edit_post(request, pk):
-        post = get_object_or_404(Post, pk=pk)
-        if request.method == 'POST':
-            form = EditPostForm(request.POST, instance=post)
-            if form.is_valid():
-                post = form.save()
-                return redirect(post.get_absolute_url())
-        else:
-            form = EditPostForm()
-        return render(request, 'edit_post.html', {'form': form})
-
-Right? Well, it's ok to write some reusable helpers for such repeatable views, but when we don't need sophisticated ones we can go **smarter**:
-
-.. sourcecode:: python
-
-    class PostViews(smarter.GenericViews):
-        model = Post
-        options = {
-            'add': {
-                'form': NewPostForm
-            }
-            'edit': {
-                'form': EditPostForm
-            }
-        }
-
-That's it.
-
-
-Changes in v1.0
+Changes in v0.5
 ---------------
 
-API is finally and completely changed since v0.6 release.
+**Warning!** There are some backwards incompatible changes in v0.5
 
-We've made a "quantum jump" by breaking old-and-not-so-good API to new solid nice one and hope you'll like it.
-
+Watch section `Customise views`_.
 
 Installation
 ------------
@@ -54,18 +25,15 @@ To install::
     
     pip install django-smarter
 
-You *may* add ``smarter`` to your ``INSTALLED_APPS`` to get default templates, but you *don't have to*:
+Then add ``smarter`` to your ``INSTALLED_APPS``:
 
-.. sourcecode:: python
+.. code:: python
 
     INSTALLED_APPS = (
         ...
         'smarter',
         ...
     )
-
-Then you should define your views and include them in urls, see `Getting started`_ section below.
-
 
 Getting started
 ---------------
@@ -93,10 +61,10 @@ In your urls.py:
 
 .. code:: python
 
-    import smarter
+    from smarter import SmarterSite
     from myapp.models import Page
 
-    site = smarter.Site()
+    site = SmarterSite()
     site.register(Page)
 
     urlpatterns = patterns('',
@@ -109,170 +77,28 @@ This will create generic views for Page model, accessed by urls:
 
 - /page/
 - /page/add/
-- /page/``<pk>``/
-- /page/``<pk>``/edit/
-- /page/``<pk>``/remove/
+- /page/<pk>/
+- /page/<pk>/edit/
+- /page/<pk>/remove/
 
 Customize templates
 ~~~~~~~~~~~~~~~~~~~
 
-Each url by default is mapped to view method and template.
+Each url is mapped to view method and templates.
 
-======================  ======================= =====================
-         URL                    Template                Context
-======================  ======================= =====================
-/page/                  myapp/page_index.html   {{ objects_list }}
-/page/add/              myapp/page_add.html     {{ obj }}, {{ form }}
-/page/``<pk>``/         myapp/page_details.html {{ obj }}
-/page/``<pk>``/edit/    myapp/page_edit.html    {{ obj }}, {{ form }}
-/page/``<pk>``/remove/  myapp/page_remove.html  {{ obj }}
-======================  ======================= =====================
+Templates by urls:
 
+- /page/ => myapp/page_index.html
+- /page/add/ => myapp/page_add.html
+- /page/<pk>/ => myapp/page_details.html
+- /page/<pk>/edit/ => myapp/page_edit.html
+- /page/<pk>/remove/ => myapp/page_remove.html
 
-API reference
--------------
+Index template has template variable ``objects_list``.
 
-smarter.Site
-~~~~~~~~~~~~
+All other templates have variable ``obj``.
 
-| **Site**\(prefix=None)
-|  - constructor
-|
-| **register**\(model_or_views, base_url=None, prefix=None)
-|  - method to add your model or views
-|
-| **urls**
-|  - property
-
-smarter.GenericViews
-~~~~~~~~~~~~~~~~~~~~
-
-| **model**
-|  - class property, model class for views
-|
-| **defaults**
-|  - class property, dict with default options applied to all actions until being overriden by ``options``
-|
-| **options**
-|  - class property, dict for views configration, each key corresponds to single action like 'add', 'edit', 'remove' etc.
-|
-| **resolve**\(``action, *args, **kwargs``)
-|  - method, resolves url for given action name
-|
-| **deny**\(``request, message=None``)
-|  - method, is called when action is not permitted for user, raises ``PermissionDenied`` exception or can return ``HttpResponse`` object
-|
-| **get_form**\(``request, **kwargs``)
-|  - method, returns form for request
-|
-| **get_object**\(``request, **kwargs``)
-|  - method, returns single object for request
-|
-| **get_objects_list**\(``request, **kwargs``)
-|  - method, returns objects for request
-|
-| **get_template**\(``request_or_action``)
-|  - method, returns template name or sequence of template names for rendering by action name or per-request
-|
-| **<action>**\(``request, **kwargs``)
-|  - method, 1st (starting) handler in default pipeline
-|
-| **<action>_perm**\(``request, **kwargs``)
-|  - method, 2nd handler in default pipeline, checks permissions
-|
-| **<action>_form**\(``request, **kwargs``)
-|  - method, 3rd handler in default pipeline, manages form processing
-|
-| **<action>_save**\(``request, form, **kwargs``)
-|  - method, called from **<action>_form** when form is ready to save, saves the form and returns saved instance
-|
-| **<action>_done**\(``request, **kwargs``)
-|  - method, 4th (last) view handler in default pipeline, performs render or redirect
-
-Options
-~~~~~~~
-
-sdfsd
-
-
-Pipeline
-~~~~~~~~
-
-Each action like 'add', 'edit' or 'remove' is a **pipeline**: a sequence (list) of methods called one after another. A result of each method is passed to the next one.
-
-The result is either **None** or **dict** or **HttpResponse** object:
-
-1. **None** - result from previous pipeline method is used for next one,
-2. **dict** - result is passed to next pipeline method,
-3. **HttpResponse** - returned immidiately as view response.
-
-For example, 'edit' pipeline is:
-
-=========   =============================================
-  Method                       Result
-=========   =============================================
-edit        {'instance': instance}
-edit_perm   None or PermissionDenied exception is raised
-edit_form   {'instance': instance} *(success)*
-            or {'form': 'form'} *(fail)*
-edit_done   render template or redirect to
-            ``instance.get_absolute_url()``
-=========   =============================================
-
-Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached using **options**.
-
-But for deeper understanding here's an example of custom pipeline for 'edit' action:
-
-.. sourcecode:: python
-
-    import smarter
-
-    class PageViews(smarter.GenericViews):
-
-        def edit(request, pk=None):
-            # Custom initial title
-            initial = {'title': request.GET.get('title': '')}
-            return {
-                'initial': initial,
-                'instance': self.get_object(pk=pk),
-            }
-
-        def edit_perm(request, **kwargs):
-            # Custom permission check
-            instance = kwargs['instance']
-            if instance.author != request.user:
-                return self.deny(request)
-
-        def edit_form(request, **kwargs):
-            # Actually, nothing custom here, it's totally generic
-            form = self.get_form(request, **kwargs)
-            if form.is_valid():
-                return {'instance': self.edit_save(request, form, **kwargs)}
-            else:
-                return {'form': form}
-
-        def edit_done(request, instance=None, form=None):
-            # Custom redirect to pages index on success
-            if instance:
-                # Success, redirecting!
-                return redirect(self.resolve('index'))
-            else:
-                # Fail, form has errors
-                return render(request, self.get_template(request), {'form': form})
-
-
-Lightweight example
--------------------
-
-...
-
-
-Complete example
-----------------
-
-| You may look at complete example source here:
-| https://github.com/05bit/django-smarter/tree/master/example
-
+Edit and add templates have also template variable ``form``.
 
 Customise views
 ~~~~~~~~~~~~~~~
