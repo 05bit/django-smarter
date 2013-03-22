@@ -180,15 +180,25 @@ class GenericViews(object):
         action = getattr(request_or_action, _action, request_or_action)
         template = self.get_param(request_or_action, 'template')
         templates = template or ('smarter/%s.html' % action,
-                                 'smarter/%s.ajax.html' % action,)
+                                 'smarter/_form.html',
+                                 'smarter/%s.ajax.html' % action,
+                                 'smarter/_ajax.html',)
 
         if is_ajax is None and hasattr(request_or_action, 'is_ajax'):
             is_ajax = request_or_action.is_ajax()
-        def sorted_for_ajax(x, y):
-            ax, ay = 'ajax' in x, 'ajax' in y
-            return cmp(x, y) if (ax == ay) else (is_ajax and ax and -1 or 1)
-
-        return sorted(templates, cmp=sorted_for_ajax)
+        def _filtered():
+            for t in templates:
+                if ('ajax' in t) == bool(is_ajax):
+                    yield t        
+        return list(_filtered())
+        # def _sorted():
+        #     for t in templates:
+        #         if ('ajax' in t) == bool(is_ajax):
+        #             yield t
+        #     for t in templates:
+        #         if (not 'ajax' in t) == bool(is_ajax):
+        #             yield t
+        # return list(_sorted())
 
     def get_form(self, request, **kwargs):
         from django.forms.models import modelform_factory, ModelForm
