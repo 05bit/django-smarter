@@ -142,9 +142,12 @@ class GenericViews(object):
         elif name in defaults:
             return defaults[name]
         elif action in _baseconfig:
-            return _baseconfig[action][name]
-        elif not default is None:
-            return default
+            try:
+                return _baseconfig[action][name]
+            except KeyError:
+                pass
+        
+        return default
         # else:
         #     raise Exception("Can't find option value: %s - %s" % (action, name))
 
@@ -210,6 +213,10 @@ class GenericViews(object):
 
         return form
 
+    def deny(self, request, message=None):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
+
     def index(self, request, **kwargs):
         return {'objects_list': self.get_objects_list(kwargs)}
 
@@ -258,7 +265,9 @@ class GenericViews(object):
         return {'obj': obj}
 
     def _pipe__perm(self, request, **kwargs):
-        pass
+        perm = self.get_param(request, 'permissions')
+        if perm and not request.user.has_perm(perm):
+            return self.deny(request)
 
     def _pipe__form(self, request, **kwargs):
         instance = kwargs.pop('obj', None)
@@ -298,66 +307,3 @@ class GenericViews(object):
             inner = d(inner)
 
         return inner
-
-
-
-
-
-
-
-
-from django.db.models import Model
-# from smarter.views import GenericViews, BaseViews
-class SmarterSite(object):
-
-    def __init__(self, name_prefix=None):
-        self.name_prefix = name_prefix
-        self.registered = []
-
-    @property
-    def urls(self):
-        urlpatterns = patterns('')
-        for item in self.registered:
-            urlpatterns += patterns('',
-                url('^' + item['base_url'], include(item['urls']))
-            )
-        return urlpatterns
-
-    def register(self, model_or_views, generic_views=GenericViews,
-                base_url=None, name_prefix=None):
-        if issubclass(model_or_views, BaseViews):
-            if hasattr(model_or_views, 'model'):
-                model = model_or_views.model
-        elif issubclass(model_or_views, Model):
-            model = model_or_views
-
-        if model:
-            model_name = model.__name__.lower()
-            full_name_prefix = self.name_prefix or ''
-            full_name_prefix += name_prefix or ('%s-' % model_name)
-            full_base_url = base_url or ('%s/' % model_name)
-        else:
-            full_name_prefix = (self.name_prefix or '') + (name_prefix or '')
-            full_base_url = base_url or ''
-
-        if issubclass(model_or_views, BaseViews):
-            urls = model_or_views.as_urls(
-                                name_prefix=full_name_prefix)
-        elif issubclass(model_or_views, Model):
-            urls = generic_views.as_urls(model=model_or_views,
-                                name_prefix=full_name_prefix)
-        else:
-            raise Exception("First argument must be model class or BaseViews subclass")
-
-        self.registered.append({
-                'base_url': full_base_url,
-                'urls': urls
-            })
-
-    def unregister(self, model_or_views):
-        raise NotImplementedError
-
-
-
-
-

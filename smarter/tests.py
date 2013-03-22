@@ -51,6 +51,12 @@ class TestViews(smarter.GenericViews):
             'url': r'(?P<pk>\d+)/decorated/',
             'form': None,
             'decorators': (login_required,),
+        },
+
+        'protected': {
+            'url': r'(?P<pk>\d+)/protected/',
+            'form': None,
+            'permissions': ('smarter.view_testmodel',)
         }
     }
 
@@ -123,4 +129,5 @@ class Tests(TestCase):
             r = self.client.get('/testmodel/1/decorated/')
             self.assertRedirects(r, '/testmodel/?next=/testmodel/1/decorated/')
 
-
+    def test_permissions(self):
+        self._test_url('/testmodel/1/protected/', 403)
