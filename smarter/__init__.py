@@ -23,18 +23,41 @@ _baseconfig = {
     'index': {
         'url': r'',
     },
-    'add': {
-        'url': r'add/',
-        'initial': None,
-    },
     'details': {
         'url': r'(?P<pk>\d+)/',
     },
+    'add': {
+        'url': r'add/',
+        'initial': None,
+        'form': None,
+        'exclude': None,
+        'fields': None,
+        'labels': None,
+        'widgets': None,
+        'required': None,
+        'help_text': None,
+    },
     'edit': {
         'url': r'(?P<pk>\d+)/edit/',
+        'initial': None,
+        'form': None,
+        'exclude': None,
+        'fields': None,
+        'labels': None,
+        'widgets': None,
+        'required': None,
+        'help_text': None,
     },
     'remove': {
         'url': r'(?P<pk>\d+)/remove/',
+        'initial': None,
+        'form': None,
+        'exclude': None,
+        'fields': None,
+        'labels': None,
+        'widgets': None,
+        'required': None,
+        'help_text': None,
     },
 }
 
@@ -118,8 +141,8 @@ class GenericViews(object):
 
         if action in options and name in options[action]:
             return options[action][name]
-        elif action in defaults and name in defaults[action]:
-            return defaults[action][name]
+        elif name in defaults:
+            return defaults[name]
         else:
             return _baseconfig[action][name]
 
@@ -132,6 +155,32 @@ class GenericViews(object):
     def get_template(self, request_or_action):
         action = getattr(request_or_action, _action, request_or_action)
         return ('smarter/%s.html' % action,)
+
+    def get_form(self, request, **kwargs):
+        from django.forms.models import modelform_factory, ModelForm
+        
+        form_options = {
+            'form': self.get_param(request, 'form') or ModelForm,
+            'exclude': self.get_param(request, 'exclude'),
+            'fields': self.get_param(request, 'fields'),
+        }
+        form_class = modelform_factory(model=self.model, **form_options)
+
+        if request.method == 'POST':
+            form = form_class(request.POST, files=request.FILES, **kwargs)
+        else:
+            form = form_class(**kwargs)
+
+        for k, v in (self.get_param(request, 'labels') or {}).items():
+            form.fields[k].label = v
+        for k, v in (self.get_param(request, 'widgets') or {}).items():
+            form.fields[k].widget = v
+        for k, v in (self.get_param(request, 'help_text') or {}).items():
+            form.fields[k].help_text = v
+        for k, v in (self.get_param(request, 'required') or {}).items():
+            form.fields[k].required = v
+
+        return form
 
     def index(self, request, **kwargs):
         return {'objects_list': self.get_objects_list(kwargs)}
@@ -185,7 +234,14 @@ class GenericViews(object):
 
     def _pipe__form(self, request, **kwargs):
         instance = kwargs.pop('obj', None)
-        return {'form': None}
+        form = self.get_form(request, instance=instance, **kwargs)
+        if form.is_bound and form.is_valid():
+            return {'obj': self._pipe__save(request, form, **kwargs)}
+        else:
+            return {'form': form}
+
+    def _pipe__save(self, request, form, **kwargs):
+        return form.save()
 
     def _pipe__done(self, request, **kwargs):
         if 'obj' in kwargs:

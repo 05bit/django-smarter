@@ -36,6 +36,9 @@ class TestModel(models.Model):
     """Well, model for tests."""
     text = models.TextField()
 
+    def get_absolute_url(self):
+        return ('/testmodel/%s/' % self.pk)
+
 
 class Tests(TestCase):
     urls = 'smarter.tests'
@@ -68,21 +71,27 @@ class Tests(TestCase):
 
     def test_generic_views_read(self):
         """
-        Test with client requests.
+        Test views reading with client requests.
         """
         self._test_url('/testmodel/')
         self._test_url('/testmodel/add/')
-
-        self._test_url('/testmodel/1/', 404)
-        TestModel.objects.create(text='Lalala!')
-        self._test_url('/testmodel/1/')
-        self._test_url('/testmodel/1/edit/')
-        self._test_url('/testmodel/1/remove/')
+        self._test_url('/testmodel/100/', 404)
+        TestModel.objects.create(id=100, text='Lalala!')
+        self._test_url('/testmodel/100/')
+        self._test_url('/testmodel/100/edit/')
+        self._test_url('/testmodel/100/remove/')
 
     def test_generic_views_write(self):
-        r = self.client.post('/testmodel/add/', {'text': 'Hahaha!'})
-        self.assertEqual(r.status_code, 302)
+        """
+        Test views writing with client requests.
+        """
+        r = self.client.post('/testmodel/add/', {'text': "Hahaha!"})
+        self.assertRedirects(r, '/testmodel/1/')
+        self.assertEqual(TestModel.objects.get(pk=1).text, "Hahaha!")
 
+        r = self.client.post('/testmodel/1/edit/', {'text': "Lalala!"})
+        self.assertRedirects(r, '/testmodel/1/')
+        self.assertEqual(TestModel.objects.get(pk=1).text, "Lalala!")
 
 
 
