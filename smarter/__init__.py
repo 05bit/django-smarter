@@ -43,13 +43,14 @@ class Site(object):
         self._delim = delim
         self._registered = []
 
-    def register(self, model_or_views, base_url=None, prefix=None):
+    def register(self, views, model=None, base_url=None, prefix=None):
         """Register views.
 
         Arguments:
-        model_or_views -- model or views class
+        views -- views class, e.g. smarter.GenericViews
 
         Keyword arguments:
+        model    -- model for views (overrides one defined in views class)
         base_url -- base url for views
         prefix   -- prefix in url names for urls resolver
 
@@ -57,10 +58,8 @@ class Site(object):
         """
         from django.db.models import Model
 
-        if issubclass(model_or_views, Model):
-            model, views = model_or_views, GenericViews
-        else:
-            model, views = None, model_or_views
+        if not model:
+            model = views.model
 
         for r in self._registered:
             if r['model'] == model and r['views'] == views:

@@ -11,7 +11,7 @@ site = smarter.Site()
 from django.db import models
 class TestModel(models.Model):
     test_field = models.TextField()
-site.register(TestModel)
+site.register(smarter.GenericViews, TestModel)
 
 urlpatterns = patterns('',
     # Examples:

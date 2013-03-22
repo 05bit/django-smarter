@@ -35,7 +35,7 @@ class SimpleTest(TestCase):
         class TestModel(models.Model):
             text = models.TextField()
 
-        self.site.register(TestModel)
+        self.site.register(smarter.GenericViews, TestModel)
         urlpatterns += patterns('', *self.site.urls)
 
     def _test_url(self, url, status=200):

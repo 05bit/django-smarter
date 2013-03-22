@@ -109,7 +109,7 @@ In your urls.py:
     from myapp.models import Page
 
     site = smarter.Site()
-    site.register(Page)
+    site.register(smarter.GenericViews, Page)
 
     urlpatterns = patterns('',
         url(r'^', include(site.urls)),
@@ -217,8 +217,8 @@ smarter.Site
 | **Site**\(prefix=None, delim='-')
 |  - constructor
 |
-| **register**\(model_or_views, base_url=None, prefix=None)
-|  - method to add your model or views
+| **register**\(views, model=None, base_url=None, prefix=None)
+|  - method to add your views for model
 |
 | **urls**
 |  - property
