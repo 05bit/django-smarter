@@ -284,12 +284,12 @@ For example, '**edit**' action pipeline is:
 ==========  =====================================  =============================================
   Method               Parameters                                 Result
 ==========  =====================================  =============================================
-edit        ``request, pk``                        {'instance': instance}
-edit__perm  ``request, instance=None, **kwargs``   None or PermissionDenied exception is raised
-edit__form  ``request, instance=None, **kwargs``   {'instance': instance} *(success)*
+edit        ``request, pk``                        {'obj': obj}
+edit__perm  ``request, obj=None, **kwargs``        None or PermissionDenied exception is raised
+edit__form  ``request, obj=None, **kwargs``        {'obj': obj} *(success)*
                                                    or {'form': 'form'} *(fail)*
-edit__done  ``request, instance=None, form=None``  render template or redirect to
-                                                   ``instance.get_absolute_url()``
+edit__done  ``request, obj=None, form=None``       render template or redirect to
+                                                   ``obj.get_absolute_url()``
 ==========  =====================================  =============================================
 
 Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached with declarative style using **options**. If you're going too far with overriding views, that may mean you'd better write some views from scratch separate from "smarter".
@@ -308,26 +308,27 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
             initial = {'title': request.GET.get('title': '')}
             return {
                 'initial': initial,
-                'instance': self.get_object(pk=pk),
+                'obj': self.get_object(pk=pk),
             }
 
         def edit__perm(request, **kwargs):
             # Custom permission check
-            instance = kwargs['instance']
-            if instance.author != request.user:
+            obj = kwargs['obj']
+            if obj.author != request.user:
                 return self.deny(request)
 
         def edit__form(request, **kwargs):
             # Actually, nothing custom here, it's totally generic
-            form = self.get_form(request, **kwargs)
+            instance = kwargs.pop('obj')
+            form = self.get_form(request, instance=instance, **kwargs)
             if form.is_valid():
-                return {'instance': self.edit__save(request, form, **kwargs)}
+                return {'obj': self.edit__save(request, form, **kwargs)}
             else:
                 return {'form': form}
 
-        def edit__done(request, instance=None, form=None):
+        def edit__done(request, obj=None, form=None):
             # Custom redirect to pages index on success
-            if instance:
+            if obj:
                 # Success, redirecting!
                 return redirect(self.get_url('index'))
             else:
