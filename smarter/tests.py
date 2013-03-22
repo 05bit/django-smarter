@@ -40,16 +40,28 @@ class TestModel(models.Model):
         return ('/testmodel/%s/' % self.pk)
 
 
+class TestViews(smarter.GenericViews):
+    options = {
+        'details-extended': {
+            'url': r'(?P<pk>\d+)/extended/',
+            'template': 'details_extended.html',
+            'form': None,
+        }
+    }
+
+
 class Tests(TestCase):
     urls = 'smarter.tests'
 
     def setUp(self):
-        global urlpatterns
         self.client = Client()
         self.site = smarter.Site()
 
-        self.site.register(smarter.GenericViews, TestModel)
+        global urlpatterns
+        self.site.register(TestViews, TestModel)
         urlpatterns += patterns('', *self.site.urls)
+
+        TestModel.objects.create(id=1, text='The first object.')
 
     def _test_url(self, url, status=200):
         self.assertEqual(self.client.get(url).status_code, status)
@@ -86,13 +98,20 @@ class Tests(TestCase):
         Test views writing with client requests.
         """
         r = self.client.post('/testmodel/add/', {'text': "Hahaha!"})
-        self.assertRedirects(r, '/testmodel/1/')
-        self.assertEqual(TestModel.objects.get(pk=1).text, "Hahaha!")
+        self.assertRedirects(r, '/testmodel/2/')
+        self.assertEqual(TestModel.objects.get(pk=2).text, "Hahaha!")
 
-        r = self.client.post('/testmodel/1/edit/', {'text': "Lalala!"})
-        self.assertRedirects(r, '/testmodel/1/')
-        self.assertEqual(TestModel.objects.get(pk=1).text, "Lalala!")
+        r = self.client.post('/testmodel/2/edit/', {'text': "Lalala!"})
+        self.assertRedirects(r, '/testmodel/2/')
+        self.assertEqual(TestModel.objects.get(pk=2).text, "Lalala!")
 
+    def test_custom_views_read(self):
+        from django.template import TemplateDoesNotExist
+        try:
+            self._test_url('/testmodel/1/extended/')
+            raise Exception("Template was found some way, but it should not!")
+        except TemplateDoesNotExist:
+            pass
 
 
 

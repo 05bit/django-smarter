@@ -4,6 +4,7 @@ import warnings
 from django.conf.urls.defaults import patterns, include, url
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
+from django.forms.models import modelform_factory, ModelForm
 
 
 class AlreadyRegistered(Exception):
@@ -22,9 +23,11 @@ class InvalidAction(Exception):
 _baseconfig = {
     'index': {
         'url': r'',
+        'template': None,
     },
     'details': {
         'url': r'(?P<pk>\d+)/',
+        'template': None,
     },
     'add': {
         'url': r'add/',
@@ -36,6 +39,7 @@ _baseconfig = {
         'widgets': None,
         'required': None,
         'help_text': None,
+        'template': None,
     },
     'edit': {
         'url': r'(?P<pk>\d+)/edit/',
@@ -47,6 +51,7 @@ _baseconfig = {
         'widgets': None,
         'required': None,
         'help_text': None,
+        'template': None,
     },
     'remove': {
         'url': r'(?P<pk>\d+)/remove/',
@@ -58,6 +63,7 @@ _baseconfig = {
         'widgets': None,
         'required': None,
         'help_text': None,
+        'template': None,
     },
 }
 
@@ -118,12 +124,23 @@ class Site(object):
 
 
 class GenericViews(object):
+    defaults = {
+        'initial': None,
+        'form': ModelForm,
+        'exclude': None,
+        'fields': None,
+        'labels': None,
+        'widgets': None,
+        'required': None,
+        'help_text': None,
+        'template': None,
+    }
 
     def __init__(self, **kwargs):
         options = getattr(self, 'options', {})
         defaults = getattr(self, 'defaults', {})
 
-        self._actions = set(_baseconfig.keys()).union(defaults.keys()).union(options.keys())
+        self._actions = set(_baseconfig.keys()).union(options.keys())
         for action in self._actions:
             if re.match(r"^((get_|_|-).*|.*__.*)", action):
                 raise InvalidAction("Invalid action name: %s" % action)
@@ -134,17 +151,24 @@ class GenericViews(object):
         self.model, self._delim, self._prefix = \
             kwargs['model'], kwargs['delim'], kwargs['prefix']
 
-    def get_param(self, request_or_action, name):
+    def get_param(self, request_or_action, name, default=None):
         options = getattr(self, 'options', {})
         defaults = getattr(self, 'defaults', {})
         action = getattr(request_or_action, _action, request_or_action)
+
+        if not action in self._actions:
+            raise Exception("No such action %s:" % action)
 
         if action in options and name in options[action]:
             return options[action][name]
         elif name in defaults:
             return defaults[name]
-        else:
+        elif action in _baseconfig:
             return _baseconfig[action][name]
+        elif not default is None:
+            return default
+        else:
+            raise Exception("Can't find option value: %s - %s" % (action, name))
 
     def get_object(self, **kwargs):
         return get_object_or_404(self.model, **kwargs)
@@ -152,19 +176,32 @@ class GenericViews(object):
     def get_objects_list(self, request, **kwargs):
         return self.model.objects.filter(**kwargs)
 
-    def get_template(self, request_or_action):
+    def get_template(self, request_or_action, is_ajax=None):
         action = getattr(request_or_action, _action, request_or_action)
-        return ('smarter/%s.html' % action,)
+        template = self.get_param(request_or_action, 'template')
+        templates = template or ('smarter/%s.html' % action,
+                                 'smarter/%s.ajax.html' % action,)
+
+        if is_ajax is None and hasattr(request_or_action, 'is_ajax'):
+            is_ajax = request_or_action.is_ajax()
+        def sorted_for_ajax(x, y):
+            ax, ay = 'ajax' in x, 'ajax' in y
+            return cmp(x, y) if (ax == ay) else (is_ajax and ax and -1 or 1)
+
+        return sorted(templates, cmp=sorted_for_ajax)
 
     def get_form(self, request, **kwargs):
         from django.forms.models import modelform_factory, ModelForm
         
-        form_options = {
-            'form': self.get_param(request, 'form') or ModelForm,
-            'exclude': self.get_param(request, 'exclude'),
-            'fields': self.get_param(request, 'fields'),
-        }
-        form_class = modelform_factory(model=self.model, **form_options)
+        form_options = {'form': self.get_param(request, 'form')}
+        if form_options['form']:
+            form_options.update({
+                'exclude': self.get_param(request, 'exclude'),
+                'fields': self.get_param(request, 'fields'),
+            })
+            form_class = modelform_factory(model=self.model, **form_options)
+        else:
+            return
 
         if request.method == 'POST':
             form = form_class(request.POST, files=request.FILES, **kwargs)
@@ -235,23 +272,25 @@ class GenericViews(object):
     def _pipe__form(self, request, **kwargs):
         instance = kwargs.pop('obj', None)
         form = self.get_form(request, instance=instance, **kwargs)
-        if form.is_bound and form.is_valid():
-            return {'obj': self._pipe__save(request, form, **kwargs)}
-        else:
-            return {'form': form}
+        if form:
+            if form.is_bound and form.is_valid():
+                return {'form': form,
+                        'obj': self._pipe__save(request, form, **kwargs)}
+            else:
+                return {'form': form}
 
     def _pipe__save(self, request, form, **kwargs):
         return form.save()
 
     def _pipe__done(self, request, **kwargs):
-        if 'obj' in kwargs:
-            try:
-                return redirect(kwargs['obj'].get_absolute_url())
-            except AttributeError:
-                return redirect(request.get_full_path())
-        elif 'form' in kwargs:
-            kwargs['obj'] = getattr(kwargs['form'], 'instance', None)
-
+        if 'form' in kwargs:
+            if 'obj' in kwargs:
+                try:
+                    return redirect(kwargs['obj'].get_absolute_url())
+                except AttributeError:
+                    return redirect(request.get_full_path())
+            else:
+                kwargs['obj'] = getattr(kwargs['form'], 'instance', None)        
         return render(request, self.get_template(request), kwargs)
 
     def _view(self, action):

@@ -286,7 +286,7 @@ For example, '**edit**' action pipeline is:
 ==========  =====================================  =============================================
 edit        ``request, pk``                        {'obj': obj}
 edit__perm  ``request, obj=None, **kwargs``        None or PermissionDenied exception is raised
-edit__form  ``request, obj=None, **kwargs``        {'obj': obj} *(success)*
+edit__form  ``request, obj=None, **kwargs``        {'form': form, 'obj': obj} *(success)*
                                                    or {'form': 'form'} *(fail)*
 edit__done  ``request, obj=None, form=None``       render template or redirect to
                                                    ``obj.get_absolute_url()``
