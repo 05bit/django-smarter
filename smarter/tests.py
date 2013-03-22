@@ -78,3 +78,13 @@ class Tests(TestCase):
         self._test_url('/testmodel/1/')
         self._test_url('/testmodel/1/edit/')
         self._test_url('/testmodel/1/remove/')
+
+    def test_generic_views_write(self):
+        r = self.client.post('/testmodel/add/', {'text': 'Hahaha!'})
+        self.assertEqual(r.status_code, 302)
+
+
+
+
+
+

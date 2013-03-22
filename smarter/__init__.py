@@ -25,6 +25,7 @@ _baseconfig = {
     },
     'add': {
         'url': r'add/',
+        'initial': None,
     },
     'details': {
         'url': r'(?P<pk>\d+)/',
@@ -125,12 +126,15 @@ class GenericViews(object):
     def get_object(self, **kwargs):
         return get_object_or_404(self.model, **kwargs)
 
+    def get_objects_list(self, request, **kwargs):
+        return self.model.objects.filter(**kwargs)
+
     def get_template(self, request_or_action):
         action = getattr(request_or_action, _action, request_or_action)
         return ('smarter/%s.html' % action,)
 
-    def index(self, request):
-        return {'objects_list': []}
+    def index(self, request, **kwargs):
+        return {'objects_list': self.get_objects_list(kwargs)}
 
     def index__form(self, request, **kwargs):
         pass
@@ -148,7 +152,12 @@ class GenericViews(object):
         return render(request, self.get_template(request), kwargs)
 
     def add(self, request):
-        pass
+        initial_fields, initial = self.get_param(request, 'initial'), {}
+        if initial_fields:
+            for f in initial_fields:
+                if f in request.GET:
+                    initial[f] = request.GET[f]
+        return {'initial': initial or None}
 
     def _urls(self):
         return [url(r'^' + self.get_param(action, 'url') + r'$',
@@ -161,8 +170,9 @@ class GenericViews(object):
     def _pipeline(self, action):
         pipes = ('%s', '%s__perm', '%s__form', '%s__done')
         for pipe in pipes:
-            if hasattr(self, pipe % action):
-                yield getattr(self, pipe % action)
+            method = pipe % action.replace('-', '_')
+            if hasattr(self, method):
+                yield getattr(self, method)
             else:
                 yield getattr(self, pipe % '_pipe')
 
