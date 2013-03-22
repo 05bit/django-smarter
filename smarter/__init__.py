@@ -1,4 +1,5 @@
 #-*- coding: utf-8 -*-
+import re
 from django.conf.urls.defaults import patterns, include, url
 
 
@@ -19,11 +20,11 @@ _baseconfig = {
     'index': {
         'url': r'',
     },
-    'details': {
-        'url': r'(?P<pk>\d+)/',
-    },
     'add': {
         'url': r'add/',
+    },
+    'details': {
+        'url': r'(?P<pk>\d+)/',
     },
     'edit': {
         'url': r'(?P<pk>\d+)/edit/',
@@ -76,6 +77,7 @@ class Site(object):
         self._registered.append({
                 'base_url': base_url and base_url or '%s/' % model_name,
                 'prefix': self._delim.join(prefix_bits),
+                'delim': self._delim,
                 'model': model,
                 'views': views,
             })
@@ -93,14 +95,15 @@ class GenericViews(object):
         options = getattr(self, 'options', {})
         defaults = getattr(self, 'defaults', {})
         self._actions = set(_baseconfig.keys()).union(defaults.keys()).union(options.keys())
-
-    def _urls(self, **kwargs):
-        urls, prefix, model = [], kwargs['prefix'], kwargs['model']
         for action in self._actions:
-            urls.append(url(
-                r'^' + self._param(action, 'url') + r'$',
-                self._view(action, model)))
-        return patterns('', *urls)
+            if re.match(r"^((get_|_|-).*|.*__.*)", action):
+                raise InvalidAction("Invalid action name: %s" % action)
+
+    def _urls(self, **kw):
+        return [url(r'^' + self._param(action, 'url') + r'$',
+                    self._view(action, kw['model']),
+                    name=kw['delim'].join((kw['prefix'], action)))
+                for action in self._actions]
 
     def _param(self, action, name):
         options = getattr(self, 'options', {})
