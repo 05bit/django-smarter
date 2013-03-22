@@ -70,9 +70,9 @@ You *may* add ``smarter`` to your ``INSTALLED_APPS`` to get default templates an
 .. sourcecode:: python
 
     INSTALLED_APPS = (
-        ...
+        # ...
         'smarter',
-        ...
+        # ...
     )
 
 Then you should define your views and include them in urls, see `Getting started`_ section below.
@@ -199,8 +199,30 @@ Every key here is optional. So, here's how options can be defined for views:
             '<action 2>': <parameters 2>
         }
 
-Action names
-~~~~~~~~~~~~
+And here's ``GenericViews.defaults`` class attribute:
+
+.. sourcecode:: python
+
+    defaults = {
+        'initial': None,
+        'form': ModelForm,
+        'exclude': None,
+        'fields': None,
+        'labels': None,
+        'widgets': None,
+        'required': None,
+        'help_text': None,
+        'template': (
+            '%(app)s/%(model)s/%(action)s.html',
+            '%(app)s/%(model)s/%(action)s.ajax.html',
+            'smarter/%(action)s.html',
+            'smarter/_form.html',
+            'smarter/_ajax.html',),
+        'decorators': None,
+    }
+
+Action names and urls
+~~~~~~~~~~~~~~~~~~~~~
 
 Actions are named so they can be mapped to views methods and they should not override reserved attributes and methods, to they:
 
@@ -210,6 +232,35 @@ Actions are named so they can be mapped to views methods and they should not ove
 4. **can't** contain '`__`'
 
 Sure, you'll get an exception if something goes wrong with that. We're following `'errors should never pass silently'` here.
+
+And here's how urls for default views are defined:
+
+.. sourcecode:: python
+
+    {
+        'index': {
+            'url': r'',
+        },
+        'details': {
+            'url': r'(?P<pk>\d+)/',
+        },
+        'add': {
+            'url': r'add/',
+        },
+        'edit': {
+            'url': r'(?P<pk>\d+)/edit/',
+        },
+        'remove': {
+            'url': r'(?P<pk>\d+)/remove/',
+        }
+    }
+
+Reversing urls
+~~~~~~~~~~~~~~
+
+Every action mapped to named url:
+
+    ``<site prefix>-<view prefix>-<action>``
 
 smarter.Site
 ~~~~~~~~~~~~
@@ -253,6 +304,9 @@ smarter.GenericViews
 | **get_template**\(``request_or_action``)
 |  - method, returns template name or sequence of template names by action name or per-request
 |
+| **get_param**\(``self, request_or_action, name, default=None``)
+|  - method, returns option parameter by name for action or per-request
+|
 | **<action>**\(``request, **kwargs``)
 |  - method, 1st (starting) handler in default pipeline
 |
@@ -265,8 +319,31 @@ smarter.GenericViews
 | **<action>__save**\(``request, form, **kwargs``)
 |  - method, called from **<action>__form** when form is ready to save, saves the form and returns saved instance
 |
+| **<action>__ctxt**\(``request, **kwargs``)
+|  - method, 4th handler in default pipeline for extending render context
+|
 | **<action>__done**\(``request, **kwargs``)
-|  - method, 4th (last) view handler in default pipeline, performs render or redirect
+|  - method, 5th (last) view handler in default pipeline, performs render or redirect
+
+
+Overriding templates
+~~~~~~~~~~~~~~~~~~~~
+
+You will certainly need to override templates. As you may see in `Options`_ section default template search paths are:
+
+.. sourcecode:: python
+
+    ('%(app)s/%(model)s/%(action)s.html',
+     '%(app)s/%(model)s/%(action)s.ajax.html',
+     'smarter/%(action)s.html',
+     'smarter/_form.html',
+     'smarter/_ajax.html',)
+
+So, you have some easy way options:
+
+1. you may override matching templates
+2. you may set **'template'** key for action options
+3. you may override 'default' class property in your views subclass, why not
 
 Pipeline
 ~~~~~~~~
@@ -281,16 +358,17 @@ The result is either **None** or **dict** or **HttpResponse** object:
 
 For example, '**edit**' action pipeline is:
 
-==========  =====================================  =============================================
+==========  =====================================   =============================================
   Method               Parameters                                 Result
-==========  =====================================  =============================================
-edit        ``request, pk``                        {'obj': obj}
-edit__perm  ``request, obj=None, **kwargs``        None or PermissionDenied exception is raised
-edit__form  ``request, obj=None, **kwargs``        {'form': form, 'obj': obj} *(success)*
-                                                   or {'form': 'form'} *(fail)*
-edit__done  ``request, obj=None, form=None``       render template or redirect to
-                                                   ``obj.get_absolute_url()``
-==========  =====================================  =============================================
+==========  =====================================   =============================================
+edit        ``request, **kwargs`` 'pk'              {'obj': obj}
+edit__perm  ``request, **kwargs`` 'obj'             pass (None) or PermissionDenied exception
+edit__form  ``request, **kwargs`` 'obj'             {'form': form, 'obj': obj} *(success)* or
+                                                    {'form': 'form'} *(fail)*
+edit__ctxt  ``request, **kwargs`` 'obj', 'form'     pass (None) by default
+edit__done  ``request, **kwargs`` 'obj', 'form'     render template or redirect to
+                                                    ``obj.get_absolute_url()``
+==========  =====================================   =============================================
 
 Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached with declarative style using **options**. If you're going too far with overriding views, that may mean you'd better write some views from scratch separate from "smarter".
 

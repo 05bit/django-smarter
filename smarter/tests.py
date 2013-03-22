@@ -3,7 +3,7 @@ Unit tests for django-smarter.
 """
 from django.conf.urls import patterns, include, url
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import Resolver404
+from django.core.urlresolvers import resolve, reverse, Resolver404
 from django.http import HttpResponse
 from django.db import models
 from django.test import TestCase
@@ -14,17 +14,6 @@ import smarter
 urlpatterns = patterns('',)
 
 
-def resolve(url):
-    """Resolve url directly with test urlpatterns."""
-    for pattern in urlpatterns:
-        try:
-            if pattern.resolve(url):
-                return True
-        except Resolver404:
-            pass
-    return False
-
-
 def handler404(request):
     """Custom 404 handler for tests."""
     from django.http import HttpResponseNotFound
@@ -32,11 +21,19 @@ def handler404(request):
 
 
 class TestModel(models.Model):
-    """Well, model for tests."""
+    """Model for tests."""
     text = models.TextField()
 
     def get_absolute_url(self):
-        return ('/testmodel/%s/' % self.pk)
+        return ('/test/testmodel/%s/' % self.pk)
+
+
+class AnotherTestModel(models.Model):
+    """Well, another model for tests."""
+    text = models.TextField()
+
+    def get_absolute_url(self):
+        return ('/test/testmodel/%s/' % self.pk)
 
 
 class TestViews(smarter.GenericViews):
@@ -67,12 +64,12 @@ class Tests(TestCase):
     def setUp(self):
         self.client = Client()
         self.site = smarter.Site()
+        self.site.register(TestViews, TestModel)
+        TestModel.objects.create(id=1, text='The first object.')
 
         global urlpatterns
-        self.site.register(TestViews, TestModel)
-        urlpatterns += patterns('', *self.site.urls)
-
-        TestModel.objects.create(id=1, text='The first object.')
+        if not len(urlpatterns):
+            urlpatterns += patterns('', url(r'^test/', include(self.site.urls)),)
 
     def _test_url(self, url, status=200):
         self.assertEqual(self.client.get(url).status_code, status)
@@ -81,53 +78,63 @@ class Tests(TestCase):
         """
         Test registering and unregistering urls.
         """
-        self.assertTrue(resolve('testmodel/')) # index
-        self.assertTrue(resolve('testmodel/add/')) # add
-        self.assertTrue(resolve('testmodel/1/edit/')) # edit
-        self.assertTrue(resolve('testmodel/2/')) # details
-        self.assertTrue(resolve('testmodel/2/remove/')) # remove
-        self.assertTrue(not resolve('testmodel/lalala/')) # no such url
+        self.assertTrue(resolve('/test/testmodel/')) # index
+        self.assertTrue(resolve('/test/testmodel/add/')) # add
+        self.assertTrue(resolve('/test/testmodel/1/edit/')) # edit
+        self.assertTrue(resolve('/test/testmodel/2/')) # details
+        self.assertTrue(resolve('/test/testmodel/2/remove/')) # remove
+        try:
+            self.assertTrue(resolve('/test/testmodel/lalala/')) # no such url
+        except Resolver404:
+            pass
 
         #site.unregister(TestModel) #still unimplemented
         #self.assertEqual(len(site.urls), 0)
         #will fail because unregister() is still unimplemented
 
+    def test_urls_reversing(self):
+        reverse('testmodel-index')
+        reverse('testmodel-add')
+        reverse('testmodel-edit', kwargs={'pk': 1})
+        reverse('testmodel-remove', kwargs={'pk': 1})
+        reverse('testmodel-details', kwargs={'pk': 1})
+
     def test_generic_views_read(self):
         """
         Test views reading with client requests.
         """
-        self._test_url('/testmodel/')
-        self._test_url('/testmodel/add/')
-        self._test_url('/testmodel/100/', 404)
+        self._test_url('/test/testmodel/')
+        self._test_url('/test/testmodel/add/')
+        self._test_url('/test/testmodel/100/', 404)
         TestModel.objects.create(id=100, text='Lalala!')
-        self._test_url('/testmodel/100/')
-        self._test_url('/testmodel/100/edit/')
-        self._test_url('/testmodel/100/remove/')
+        self._test_url('/test/testmodel/100/')
+        self._test_url('/test/testmodel/100/edit/')
+        self._test_url('/test/testmodel/100/remove/')
 
     def test_generic_views_write(self):
         """
         Test views writing with client requests.
         """
-        r = self.client.post('/testmodel/add/', {'text': "Hahaha!"})
-        self.assertRedirects(r, '/testmodel/2/')
+        r = self.client.post('/test/testmodel/add/', {'text': "Hahaha!"})
+        self.assertRedirects(r, '/test/testmodel/2/')
         self.assertEqual(TestModel.objects.get(pk=2).text, "Hahaha!")
 
-        r = self.client.post('/testmodel/2/edit/', {'text': "Lalala!"})
-        self.assertRedirects(r, '/testmodel/2/')
+        r = self.client.post('/test/testmodel/2/edit/', {'text': "Lalala!"})
+        self.assertRedirects(r, '/test/testmodel/2/')
         self.assertEqual(TestModel.objects.get(pk=2).text, "Lalala!")
 
     def test_custom_views_read(self):
         from django.template import TemplateDoesNotExist
         try:
-            self._test_url('/testmodel/1/extended/')
+            self._test_url('/test/testmodel/1/extended/')
             raise Exception("Template was found some way, but it should not!")
         except TemplateDoesNotExist:
             pass
 
     def test_decorated_view(self):
-        with self.settings(LOGIN_URL='/testmodel/'):
-            r = self.client.get('/testmodel/1/decorated/')
-            self.assertRedirects(r, '/testmodel/?next=/testmodel/1/decorated/')
+        with self.settings(LOGIN_URL='/test/testmodel/'):
+            r = self.client.get('/test/testmodel/1/decorated/')
+            self.assertRedirects(r, '/test/testmodel/?next=/test/testmodel/1/decorated/')
 
     def test_permissions(self):
-        self._test_url('/testmodel/1/protected/', 403)
+        self._test_url('/test/testmodel/1/protected/', 403)

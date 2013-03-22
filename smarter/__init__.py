@@ -1,11 +1,9 @@
 #-*- coding: utf-8 -*-
 import re
-import warnings
 from django.conf.urls.defaults import patterns, include, url
 from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
-# from django.utils.decorators import method_decorator
 
 
 class AlreadyRegistered(Exception):
@@ -44,6 +42,13 @@ _action = '_action'
 
 class Site(object):
     def __init__(self, prefix=None, delim='-'):
+        """
+        Creates site object.
+
+        Keyword arguments:
+        prefix  -- prefix for url names
+        delim   -- delimiter for url names, can be '_', '-' or empty string
+        """
         if not delim in ('-', '-', ''):
             raise Exception("Delimiter must be in '-', '_' or empty string.")
         self._prefix = prefix
@@ -52,6 +57,18 @@ class Site(object):
 
     def register(self, views, model=None, base_url=None, prefix=None):
         """Register views.
+
+        Views added with `base_url` and every view gets named url
+        with scheme: [site prefix]-[views prefix]-[action], e.g.:
+
+            app-page-index
+            app-page-add
+            app-page-edit
+            app-page-details
+            etc.
+
+        If `prefix` is not defined [views prefix] is set to model
+        lowercase name.
 
         Arguments:
         views -- views class, e.g. smarter.GenericViews
@@ -90,7 +107,9 @@ class Site(object):
 
     @property
     def urls(self):
-        """Site urls."""
+        """
+        Site urls.
+        """
         return [url(r['base_url'], include(r['views'](**r)._urls()))
             for r in self._registered]
 
@@ -146,10 +165,8 @@ class GenericViews(object):
                 return _baseconfig[action][name]
             except KeyError:
                 pass
-        
+
         return default
-        # else:
-        #     raise Exception("Can't find option value: %s - %s" % (action, name))
 
     def get_object(self, **kwargs):
         return get_object_or_404(self.model, **kwargs)
@@ -252,7 +269,10 @@ class GenericViews(object):
         return '%s%s%s' % (self._prefix, self._delim, action)
 
     def _pipeline(self, action):
-        pipes = ('%s', '%s__perm', '%s__form', '%s__done')
+        """
+        View method pipeline.
+        """
+        pipes = ('%s', '%s__perm', '%s__form', '%s__ctxt', '%s__done')
         for pipe in pipes:
             method = pipe % action.replace('-', '_')
             if hasattr(self, method):
@@ -261,15 +281,24 @@ class GenericViews(object):
                 yield getattr(self, pipe % '_pipe')
 
     def _pipe(self, request, **kwargs):
+        """
+        Initial view method.
+        """
         obj = self.get_object(**kwargs)
         return {'obj': obj}
 
     def _pipe__perm(self, request, **kwargs):
+        """
+        Checks permissions.
+        """
         perm = self.get_param(request, 'permissions')
         if perm and not request.user.has_perm(perm):
             return self.deny(request)
 
     def _pipe__form(self, request, **kwargs):
+        """
+        Creates and processes form.
+        """
         instance = kwargs.pop('obj', None)
         form = self.get_form(request, instance=instance, **kwargs)
         if form:
@@ -280,9 +309,21 @@ class GenericViews(object):
                 return {'form': form}
 
     def _pipe__save(self, request, form, **kwargs):
+        """
+        Saves form.
+        """
         return form.save()
 
+    def _pipe__ctxt(self, request, **kwargs):
+        """
+        Extends render context.
+        """
+        pass
+
     def _pipe__done(self, request, **kwargs):
+        """
+        View processing done: render or redirect.
+        """
         if 'form' in kwargs:
             if 'obj' in kwargs:
                 try:
