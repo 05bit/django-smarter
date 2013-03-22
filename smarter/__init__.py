@@ -133,7 +133,12 @@ class GenericViews(object):
         'widgets': None,
         'required': None,
         'help_text': None,
-        'template': None,
+        'template': (
+            '%(app)s/%(model)s/%(action)s.html',
+            '%(app)s/%(model)s/%(action)s.ajax.html',
+            'smarter/%(action)s.html',
+            'smarter/_form.html',
+            'smarter/_ajax.html',)
     }
 
     def __init__(self, **kwargs):
@@ -177,19 +182,22 @@ class GenericViews(object):
         return self.model.objects.filter(**kwargs)
 
     def get_template(self, request_or_action, is_ajax=None):
-        action = getattr(request_or_action, _action, request_or_action)
+        format = {
+            'action': getattr(request_or_action, _action, request_or_action),
+            'app': self.model._meta.app_label,
+            'model': self.model._meta.object_name.lower(),
+        }
         template = self.get_param(request_or_action, 'template')
-        templates = template or ('smarter/%s.html' % action,
-                                 'smarter/_form.html',
-                                 'smarter/%s.ajax.html' % action,
-                                 'smarter/_ajax.html',)
+
+        if isinstance(template, (str, unicode)):
+            return template % format
 
         if is_ajax is None and hasattr(request_or_action, 'is_ajax'):
             is_ajax = request_or_action.is_ajax()
         def _filtered():
-            for t in templates:
+            for t in template:
                 if ('ajax' in t) == bool(is_ajax):
-                    yield t        
+                    yield t % format
         return list(_filtered())
         # def _sorted():
         #     for t in templates:

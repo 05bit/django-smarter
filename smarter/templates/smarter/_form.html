@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+<head><meta charset='utf-8'></head>
+{% load i18n %}
+<body>
+    <form method="POST" action="" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}>
+        {% csrf_token %}
+        <table>
+            {{ form.as_table }}
+            <tr>
+                <td>&nbsp;</td>
+                <td>
+                    <button type="submit">{% trans "Save" %}</button>
+                    <a href="../">{% trans "Cancel" %}</a>
+                </td>
+            </tr>
+        </table>
+    </form>
+</body>
+</html>
