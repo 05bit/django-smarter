@@ -119,8 +119,9 @@ class GenericViews(object):
         pass
 
     def _view(self, action, model):
-        def v(request):
-            raise Exception(action)
+        from django.http import HttpResponse
+        def v(request, **kwargs):
+            return HttpResponse(action)
         return v
 
     def index(self, request):
