@@ -65,7 +65,7 @@ To install::
     
     pip install django-smarter
 
-You *may* add ``smarter`` to your ``INSTALLED_APPS`` to get default templates, but you *don't have to*:
+You *may* add ``smarter`` to your ``INSTALLED_APPS`` to get default templates and tests, but you *don't have to*:
 
 .. sourcecode:: python
 

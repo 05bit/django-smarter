@@ -1,6 +1,9 @@
 #-*- coding: utf-8 -*-
 import re
+import warnings
 from django.conf.urls.defaults import patterns, include, url
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, render, redirect
 
 
 class AlreadyRegistered(Exception):
@@ -33,6 +36,8 @@ _baseconfig = {
         'url': r'(?P<pk>\d+)/remove/',
     },
 }
+
+_action = '_action'
 
 
 class Site(object):
@@ -84,29 +89,32 @@ class Site(object):
     @property
     def urls(self):
         """Site urls."""
-        return [url(r['base_url'], include(r['views']()._urls(**r)))
+        return [url(r['base_url'], include(r['views'](**r)._urls()))
             for r in self._registered]
 
 
 class GenericViews(object):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         options = getattr(self, 'options', {})
         defaults = getattr(self, 'defaults', {})
+
         self._actions = set(_baseconfig.keys()).union(defaults.keys()).union(options.keys())
         for action in self._actions:
             if re.match(r"^((get_|_|-).*|.*__.*)", action):
                 raise InvalidAction("Invalid action name: %s" % action)
 
-    def _urls(self, **kw):
-        return [url(r'^' + self._param(action, 'url') + r'$',
-                    self._view(action, kw['model']),
-                    name=kw['delim'].join((kw['prefix'], action)))
-                for action in self._actions]
+        if not kwargs['model']:
+            raise Exception("No model specified for views!")
 
-    def _param(self, action, name):
+        self.model, self._delim, self._prefix = \
+            kwargs['model'], kwargs['delim'], kwargs['prefix']
+
+    def get_param(self, request_or_action, name):
         options = getattr(self, 'options', {})
         defaults = getattr(self, 'defaults', {})
+        action = getattr(request_or_action, _action, request_or_action)
+
         if action in options and name in options[action]:
             return options[action][name]
         elif action in defaults and name in defaults[action]:
@@ -114,19 +122,82 @@ class GenericViews(object):
         else:
             return _baseconfig[action][name]
 
-    def _pipeline(self, action, options):
-        pass
+    def get_object(self, **kwargs):
+        return get_object_or_404(self.model, **kwargs)
 
-    def _view(self, action, model):
-        from django.http import HttpResponse
-        def v(request, **kwargs):
-            return HttpResponse(action)
-        return v
+    def get_template(self, request_or_action):
+        action = getattr(request_or_action, _action, request_or_action)
+        return ('smarter/%s.html' % action,)
 
     def index(self, request):
+        return {'objects_list': []}
+
+    def index__form(self, request, **kwargs):
         pass
 
+    def index__done(self, request, **kwargs):
+        return render(request, self.get_template(request), kwargs)
 
+    def details(self, request, **kwargs):
+        return {'obj': self.get_object(**kwargs)}
+
+    def details__form(self, request, **kwargs):
+        pass
+
+    def details__done(self, request, **kwargs):
+        return render(request, self.get_template(request), kwargs)
+
+    def add(self, request):
+        pass
+
+    def _urls(self):
+        return [url(r'^' + self.get_param(action, 'url') + r'$',
+                    self._view(action), name=self._url_name(action))
+                for action in self._actions]
+
+    def _url_name(self, action):
+        return '%s%s%s' % (self._prefix, self._delim, action)
+
+    def _pipeline(self, action):
+        pipes = ('%s', '%s__perm', '%s__form', '%s__done')
+        for pipe in pipes:
+            if hasattr(self, pipe % action):
+                yield getattr(self, pipe % action)
+            else:
+                yield getattr(self, pipe % '_pipe')
+
+    def _pipe(self, request, **kwargs):
+        obj = self.get_object(**kwargs)
+        return {'obj': obj}
+
+    def _pipe__perm(self, request, **kwargs):
+        pass
+
+    def _pipe__form(self, request, **kwargs):
+        instance = kwargs.pop('obj', None)
+        return {'form': None}
+
+    def _pipe__done(self, request, **kwargs):
+        if 'obj' in kwargs:
+            try:
+                return redirect(kwargs['obj'].get_absolute_url())
+            except AttributeError:
+                return redirect(request.get_full_path())
+        elif 'form' in kwargs:
+            kwargs['obj'] = getattr(kwargs['form'], 'instance', None)
+
+        return render(request, self.get_template(request), kwargs)
+
+    def _view(self, action):
+        def inner(request, **kwargs):
+            # return HttpResponse(action)
+            setattr(request, _action, action)
+            result = kwargs
+            for pipe in self._pipeline(action):
+                result = pipe(request, **result) or result
+                if isinstance(result, HttpResponse):
+                    return result
+        return inner
 
 
 
