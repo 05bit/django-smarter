@@ -2,9 +2,10 @@
 import re
 import warnings
 from django.conf.urls.defaults import patterns, include, url
+from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
-from django.forms.models import modelform_factory, ModelForm
+# from django.utils.decorators import method_decorator
 
 
 class AlreadyRegistered(Exception):
@@ -23,47 +24,18 @@ class InvalidAction(Exception):
 _baseconfig = {
     'index': {
         'url': r'',
-        'template': None,
     },
     'details': {
         'url': r'(?P<pk>\d+)/',
-        'template': None,
     },
     'add': {
         'url': r'add/',
-        'initial': None,
-        'form': None,
-        'exclude': None,
-        'fields': None,
-        'labels': None,
-        'widgets': None,
-        'required': None,
-        'help_text': None,
-        'template': None,
     },
     'edit': {
         'url': r'(?P<pk>\d+)/edit/',
-        'initial': None,
-        'form': None,
-        'exclude': None,
-        'fields': None,
-        'labels': None,
-        'widgets': None,
-        'required': None,
-        'help_text': None,
-        'template': None,
     },
     'remove': {
         'url': r'(?P<pk>\d+)/remove/',
-        'initial': None,
-        'form': None,
-        'exclude': None,
-        'fields': None,
-        'labels': None,
-        'widgets': None,
-        'required': None,
-        'help_text': None,
-        'template': None,
     },
 }
 
@@ -138,7 +110,8 @@ class GenericViews(object):
             '%(app)s/%(model)s/%(action)s.ajax.html',
             'smarter/%(action)s.html',
             'smarter/_form.html',
-            'smarter/_ajax.html',)
+            'smarter/_ajax.html',),
+        'decorators': None,
     }
 
     def __init__(self, **kwargs):
@@ -172,8 +145,8 @@ class GenericViews(object):
             return _baseconfig[action][name]
         elif not default is None:
             return default
-        else:
-            raise Exception("Can't find option value: %s - %s" % (action, name))
+        # else:
+        #     raise Exception("Can't find option value: %s - %s" % (action, name))
 
     def get_object(self, **kwargs):
         return get_object_or_404(self.model, **kwargs)
@@ -320,6 +293,10 @@ class GenericViews(object):
                 result = pipe(request, **result) or result
                 if isinstance(result, HttpResponse):
                     return result
+        
+        for d in self.get_param(action, 'decorators') or ():
+            inner = d(inner)
+
         return inner
 
 

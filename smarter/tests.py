@@ -1,15 +1,14 @@
 """
 Unit tests for django-smarter.
 """
-import itertools
-from django.test import TestCase
-from django.http import HttpResponse
 from django.conf.urls import patterns, include, url
-from django.db import models
+from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import Resolver404
+from django.http import HttpResponse
+from django.db import models
+from django.test import TestCase
 from django.test.client import Client
 import smarter
-from views import BaseViews, GenericViews
 
 # Custom urls for tests
 urlpatterns = patterns('',)
@@ -46,6 +45,12 @@ class TestViews(smarter.GenericViews):
             'url': r'(?P<pk>\d+)/extended/',
             'template': 'details_extended.html',
             'form': None,
+        },
+
+        'decorated': {
+            'url': r'(?P<pk>\d+)/decorated/',
+            'form': None,
+            'decorators': (login_required,),
         }
     }
 
@@ -113,6 +118,9 @@ class Tests(TestCase):
         except TemplateDoesNotExist:
             pass
 
-
+    def test_decorated_view(self):
+        with self.settings(LOGIN_URL='/testmodel/'):
+            r = self.client.get('/testmodel/1/decorated/')
+            self.assertRedirects(r, '/testmodel/?next=/testmodel/1/decorated/')
 
 
