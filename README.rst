@@ -246,6 +246,7 @@ Options
         'help_text':    <dict for help texts overrides>,
         'required':     <dict for required fields overrides>,
         'template':     <string template name>,
+        'redirect':     <string or callable returning redirect path>
     }
 
 Every key here is optional. So, here's how options can be defined for views:
@@ -277,6 +278,7 @@ And here's ``GenericViews.defaults`` class attribute:
         'widgets': None,
         'required': None,
         'help_text': None,
+        'next': None,
         'template': (
             '%(app)s/%(model)s/%(action)s.html',
             '%(app)s/%(model)s/%(action)s.ajax.html',
@@ -284,6 +286,7 @@ And here's ``GenericViews.defaults`` class attribute:
             'smarter/_form.html',
             'smarter/_ajax.html',),
         'decorators': None,
+        'permissions': None,
     }
 
 When option value can't be found in options dict for action it's searched in `GenericViews.defaults`. Note, that defaults are applied to **all actions**.
@@ -450,7 +453,7 @@ So, in `Getting started`_ example named URLs are 'page-add', 'page-edit', 'page-
 Lightweight example
 -------------------
 
-But for deeper understanding here's an example of custom pipeline for 'edit' action:
+For deeper understanding here's an example of custom pipeline for 'edit' action. It's not actually a **recommended** way, as we can reach the same effect without overriding ``edit`` method by defining ``options['edit']['initial']``, but it illustrates the principle of pipeline.
 
 .. sourcecode:: python
 
@@ -490,8 +493,6 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
             else:
                 # Fail, form has errors
                 return render(request, self.get_template(request), {'form': form})
-
-It's not actually a **recommended** way, as we can reach the same effect without overriding ``edit`` method by defining ``options['edit']['initial']``, but it illustrates the principle of pipeline.
 
 Complete example
 ----------------

@@ -35,12 +35,15 @@ _baseconfig = {
     },
     'add': {
         'url': r'add/',
+        'redirect': (lambda view, request, **kw: kw['obj'].get_absolute_url()),
     },
     'edit': {
         'url': r'(?P<pk>\d+)/edit/',
+        'redirect': (lambda view, request, **kw: kw['obj'].get_absolute_url()),
     },
     'remove': {
         'url': r'(?P<pk>\d+)/remove/',
+        'redirect': '../',
     },
 }
 
@@ -188,6 +191,14 @@ class GenericViews(object):
     def get_objects_list(self, request, **kwargs):
         return self.model.objects.filter(**kwargs)
 
+    def get_initial(self, request_or_action):
+        initial_fields, initial = self.get_param(request_or_action, 'initial'), {}
+        if initial_fields:
+            for f in initial_fields:
+                if f in request.GET:
+                    initial[f] = request.GET[f]
+        return initial
+
     def get_template(self, request_or_action, is_ajax=None):
         format = {
             'action': getattr(request_or_action, _action, request_or_action),
@@ -228,10 +239,12 @@ class GenericViews(object):
         else:
             return
 
+        form_kwargs = kwargs.get('form', {})
+        form_kwargs.setdefault('initial', self.get_initial(request))        
         if request.method == 'POST':
-            form = form_class(request.POST, files=request.FILES, **kwargs)
+            form = form_class(request.POST, files=request.FILES, **form_kwargs)
         else:
-            form = form_class(**kwargs)
+            form = form_class(**form_kwargs)
 
         for k, v in (self.get_param(request, 'labels') or {}).items():
             form.fields[k].label = v
@@ -267,12 +280,7 @@ class GenericViews(object):
         return render(request, self.get_template(request), kwargs)
 
     def add(self, request):
-        initial_fields, initial = self.get_param(request, 'initial'), {}
-        if initial_fields:
-            for f in initial_fields:
-                if f in request.GET:
-                    initial[f] = request.GET[f]
-        return {'initial': initial or None}
+        pass
 
     def _urls(self):
         return [url(r'^' + self.get_param(action, 'url') + r'$',
@@ -296,10 +304,11 @@ class GenericViews(object):
 
     def _pipe(self, request, **kwargs):
         """
-        Initial view method.
+        Default initial view method. Returns object and
+        form parameters.
         """
         obj = self.get_object(**kwargs)
-        return {'obj': obj}
+        return {'obj': obj, 'form': {'instance': obj}}
 
     def _pipe__perm(self, request, **kwargs):
         """
@@ -313,16 +322,18 @@ class GenericViews(object):
         """
         Creates and processes form.
         """
-        instance = kwargs.pop('obj', None)
-        form = self.get_form(request, instance=instance, **kwargs)
+        form = self.get_form(request, **kwargs)
         if form:
+            kwargs['form'] = form
             if form.is_bound and form.is_valid():
-                return {'form': form,
-                        'obj': self._pipe__save(request, form, **kwargs)}
-            else:
-                return {'form': form}
+                kwargs['obj'] = self._pipe__save(request, **kwargs)
+                kwargs['form_saved'] = True
+            return kwargs
+        else:
+            kwargs.pop('form', None)
+            return kwargs
 
-    def _pipe__save(self, request, form, **kwargs):
+    def _pipe__save(self, request, form=None, **kwargs):
         """
         Saves form.
         """
@@ -336,16 +347,15 @@ class GenericViews(object):
 
     def _pipe__done(self, request, **kwargs):
         """
-        View processing done: render or redirect.
+        View processing done: redirect if ``form_saved is ``True`` or
+        render template.
         """
-        if 'form' in kwargs:
-            if 'obj' in kwargs:
-                try:
-                    return redirect(kwargs['obj'].get_absolute_url())
-                except AttributeError:
-                    return redirect(request.get_full_path())
+        if kwargs.get('form_saved', False):
+            redirect_path = self.get_param(request, 'redirect')
+            if callable(redirect_path):
+                return redirect(redirect_path(self, request, **kwargs))
             else:
-                kwargs['obj'] = getattr(kwargs['form'], 'instance', None)        
+                return redirect(redirect_path)
         return render(request, self.get_template(request), kwargs)
 
     def _view(self, action):
