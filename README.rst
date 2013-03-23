@@ -59,9 +59,9 @@ Installation
 
 Requirements:
 
-    - Django >= 1.3
+- Django >= 1.3
 
-To install::
+Installation::
     
     pip install django-smarter
 
@@ -117,7 +117,7 @@ In your `urls.py`:
         # other urls ...
     )
 
-This code creates generic views for `Page` model, accessed by urls:
+This code creates generic views for ``Page`` model, accessed by urls:
 
 - /page/
 - /page/add/
@@ -128,7 +128,7 @@ This code creates generic views for `Page` model, accessed by urls:
 Customize views
 ~~~~~~~~~~~~~~~
 
-Subclass from `smarter.GenericViews` and set custom options and/or override methods.
+Subclass from ``smarter.GenericViews`` and set custom options and/or override methods.
 
 .. sourcecode:: python
 
@@ -194,8 +194,8 @@ Default template search paths are:
 So, you have some easy way options:
 
 1. you may override matching templates
-2. you may set 'template' key in `PageViews.options` for each action
-3. you may override default search paths by settings new `PageViews.defaults` (read `Options`_ section for details)
+2. you may set 'template' key in ``PageViews.options`` for each action
+3. you may override default search paths by settings new ``PageViews.defaults`` (read `Options`_ section for details)
 
 API reference
 -------------
@@ -217,7 +217,7 @@ edit        /``<pk>``/edit/     edit(``request, pk``)       [prefix]-[model]-edi
 remove      /``<pk>``/remove/   remove(``request, pk``)     [prefix]-[model]-remove
 =======     =================   =========================   ========================
 
-What is **[prefix]**? Prefix is defined for `smarter.Site` instance:
+What is **[prefix]**? Prefix is defined for ``smarter.Site`` instance:
 
 .. sourcecode:: python
 
@@ -230,7 +230,7 @@ So, it **can be empty** and URL names without prefix are defined as `[model]-ind
 Options
 ~~~~~~~
 
-**Options** is a `GenericViews.options` dict, class property, it contains actions names as keys and actions parameters as values. Parameters structure is:
+**Options** is a ``GenericViews.options`` dict, class property, it contains actions names as keys and actions parameters as values. Parameters structure is:
 
 .. sourcecode:: python
 
@@ -367,7 +367,7 @@ smarter.GenericViews
 |  - class property, dict for views configration, each key corresponds to single action like 'add', 'edit', 'remove' etc.
 |
 | **deny**\(``request, message=None``)
-|  - method, is called when action is not permitted for user, raises `PermissionDenied` exception or can return `HttpResponse` object for redirecting or rendering some page
+|  - method, is called when action is not permitted for user, raises ``PermissionDenied`` exception or can return ``HttpResponse`` object for redirecting or rendering some page
 |
 | **get_url**\(``action, *args, **kwargs``)
 |  - method, returns url for given action name
@@ -422,7 +422,7 @@ For example, 'edit' action pipeline is:
   Method               Parameters                                 Result
 ==========  =====================================   =============================================
 edit        ``request, **kwargs`` 'pk'              `{'obj': obj}`
-edit__perm  ``request, **kwargs`` 'obj'             pass (`None`) or `PermissionDenied` exception
+edit__perm  ``request, **kwargs`` 'obj'             pass (`None`) or ``PermissionDenied`` exception
 edit__form  ``request, **kwargs`` 'obj'             `{'form': form, 'obj': obj}` (success) or
                                                     `{'form': 'form'}` (fail)
 edit__ctxt  ``request, **kwargs`` 'obj', 'form'     pass (`None`) by default
@@ -491,7 +491,7 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
                 # Fail, form has errors
                 return render(request, self.get_template(request), {'form': form})
 
-It's not actually a **recommended** way, as we can reach the same effect without overriding `edit` method by defining `options['edit']['initial']`, but it illustrates the principle of pipeline.
+It's not actually a **recommended** way, as we can reach the same effect without overriding ``edit`` method by defining `options['edit']['initial']`, but it illustrates the principle of pipeline.
 
 Complete example
 ----------------
