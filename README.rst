@@ -405,8 +405,8 @@ smarter.GenericViews
 | **<action>__save**\(``request, form, **kwargs``)
 |  - method, called from **<action>__form** when form is ready to save, saves the form and returns saved instance
 |
-| **<action>__ctxt**\(``request, **kwargs``)
-|  - method, 4th handler in default pipeline for extending render context
+| **<action>__post**\(``request, **kwargs``)
+|  - method, 4th handler in default pipeline for post-processing: save messages, extend render context, etc.
 |
 | **<action>__done**\(``request, **kwargs``)
 |  - method, 5th (last) view handler in default pipeline, performs render or redirect
@@ -436,7 +436,7 @@ edit__form  ``request, **kwargs`` 'obj', 'form'     | ``{'form': form, 'obj': ob
                                                     | ``{'form': form, 'obj': obj}``
                                                     | - first open or form contains errors
 
-edit__ctxt  ``request, **kwargs``                   pass (``None``) by default
+edit__post  ``request, **kwargs``                   pass (``None``) by default
             'obj', 'form', 'form_saved'
 
 edit__done  ``request, **kwargs``

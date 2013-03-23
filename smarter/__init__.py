@@ -303,7 +303,7 @@ class GenericViews(object):
         """
         View method pipeline.
         """
-        pipes = ('%s', '%s__perm', '%s__form', '%s__ctxt', '%s__done')
+        pipes = ('%s', '%s__perm', '%s__form', '%s__post', '%s__done')
         for pipe in pipes:
             method = pipe % action.replace('-', '_')
             if hasattr(self, method):
@@ -329,7 +329,8 @@ class GenericViews(object):
 
     def _pipe__form(self, request, **kwargs):
         """
-        Creates and processes form.
+        Creates and processes form. If form is successfully saved,
+        there's ``'form_saved': True`` in result dict.
         """
         form = self.get_form(request, **kwargs)
         if form:
@@ -344,13 +345,15 @@ class GenericViews(object):
 
     def _pipe__save(self, request, form=None, **kwargs):
         """
-        Saves form.
+        Saves form and returns saved object.
         """
         return form.save()
 
-    def _pipe__ctxt(self, request, **kwargs):
+    def _pipe__post(self, request, **kwargs):
         """
-        Extends render context.
+        Post-processing, called after form processing, if you need
+        to know wether form was saved, check if ``form_saved argument
+        is ``True``.
         """
         pass
 
