@@ -1,0 +1,6 @@
+LICENSE
+AUTHORS
+README.rst
+recursive-include smarter/templates *
+global-exclude .DS_Store
+global-exclude Thumbs.db

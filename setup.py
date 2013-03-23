@@ -3,10 +3,10 @@
 from os.path import join, dirname
 from setuptools import setup
 
-version = '0.5'
+version = '1.0b'
 
 LONG_DESCRIPTION = """
-Django application for smarter application building.
+Smarter declarative style generic views for Django.
 """
 
 def long_description():
@@ -21,13 +21,14 @@ setup(name='django-smarter',
       version=version,
       author='Alexey Kinyov',
       author_email='rudy@05bit.com',
-      description='Django application for smarter application building.',
+      description='Smarter declarative style generic views for Django.',
       license='BSD',
-      keywords='django, application, scaffolding',
+      keywords='django, application, scaffolding, crud, views, utility',
       url='https://github.com/05bit/django-smarter',
       packages=['smarter',],
+      include_package_data=True,
       long_description=long_description(),
-      install_requires=['Django>=1.3',],
+      install_requires=['Django>=1.4',],
       classifiers=['Development Status :: 4 - Beta',
                    'Operating System :: OS Independent',
                    'License :: OSI Approved :: BSD License',

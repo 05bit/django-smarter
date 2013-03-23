@@ -4,7 +4,7 @@ django-smarter
 --------------
 
 Copyright (c) 2013, Alexey Kinyov <rudy@05bit.com>
-Licensed under MIT, see LICENSE for more details.
+Licensed under BSD, see LICENSE for more details.
 """
 import re
 from django.conf.urls.defaults import patterns, include, url

@@ -52,14 +52,14 @@ Contributors
 * `Fabio Santos <https://github.com/fabiosantoscode>`_
 * `Sameer Al-Sakran <https://github.com/salsakran>`_
 
-Thank you comrades! :)
+Thank you, comrades! :)
 
 Installation
 ------------
 
 Requirements:
 
-- Django >= 1.3
+- Django >= 1.4
 
 Installation::
     
@@ -294,7 +294,7 @@ When option value can't be found in options dict for action it's searched in `Ge
 Action names and URLs
 ~~~~~~~~~~~~~~~~~~~~~
 
-Actions are named so they can be mapped to views methods and they should not override reserved attributes and methods, to they:
+Actions are named so they can be mapped to views methods and they should not override reserved attributes and methods, so they:
 
 1. **must contain only** latin symbols and '_' or '-', **no spaces**
 2. **can't** be in this list: 'model', 'defaults', 'options', 'deny'
@@ -511,3 +511,9 @@ Complete example
 
 | You may look at complete example source here:
 | https://github.com/05bit/django-smarter/tree/master/example
+
+License
+-------
+
+Copyright (c) 2013, Alexey Kinyov <rudy@05bit.com>
+Licensed under BSD, see LICENSE for more details.
