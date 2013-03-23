@@ -418,17 +418,17 @@ The result is either **None** or **dict** or **HttpResponse** object:
 
 For example, 'edit' action pipeline is:
 
-==========  =====================================   =============================================
+==========  =====================================   ================================================
   Method               Parameters                                 Result
-==========  =====================================   =============================================
-edit        ``request, **kwargs`` 'pk'              `{'obj': obj}`
-edit__perm  ``request, **kwargs`` 'obj'             pass (`None`) or ``PermissionDenied`` exception
-edit__form  ``request, **kwargs`` 'obj'             `{'form': form, 'obj': obj}` (success) or
-                                                    `{'form': 'form'}` (fail)
-edit__ctxt  ``request, **kwargs`` 'obj', 'form'     pass (`None`) by default
+==========  =====================================   ================================================
+edit        ``request, **kwargs`` 'pk'              ``{'obj': obj}``
+edit__perm  ``request, **kwargs`` 'obj'             pass (``None``) or ``PermissionDenied`` exception
+edit__form  ``request, **kwargs`` 'obj'             ``{'form': form, 'obj': obj}`` (success) or
+                                                    ``{'form': 'form'}`` (fail)
+edit__ctxt  ``request, **kwargs`` 'obj', 'form'     pass (``None``) by default
 edit__done  ``request, **kwargs`` 'obj', 'form'     render template or redirect to
-                                                    `obj.get_absolute_url()`
-==========  =====================================   =============================================
+                                                    ``obj.get_absolute_url()``
+==========  =====================================   ================================================
 
 Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached with declarative style using **options**. If you're going too far with overriding views, that may mean you'd better write some views from scratch separate from "smarter".
 
@@ -491,7 +491,7 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
                 # Fail, form has errors
                 return render(request, self.get_template(request), {'form': form})
 
-It's not actually a **recommended** way, as we can reach the same effect without overriding ``edit`` method by defining `options['edit']['initial']`, but it illustrates the principle of pipeline.
+It's not actually a **recommended** way, as we can reach the same effect without overriding ``edit`` method by defining ``options['edit']['initial']``, but it illustrates the principle of pipeline.
 
 Complete example
 ----------------
