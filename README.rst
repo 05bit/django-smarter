@@ -89,7 +89,7 @@ Let’s define a simple model:
 .. sourcecode:: python
 
     class Page(models.Model):
-        author = models.ForeignKey('auth.User')
+        owner = models.ForeignKey('auth.User')
         title = models.CharField(max_length=100)
         text = models.TextField()
 
@@ -142,13 +142,13 @@ Subclass from ``smarter.GenericViews`` and set custom options and/or override me
         options = {
             'add': {
                 'decorators': (login_required,)
-                'exclude': ('author',)
+                'exclude': ('owner',)
             },
         }
 
         def add__save(self, request, form, **kwargs):
             obj = form.save(commit=False)
-            obj.author = request.user
+            obj.owner = request.user
             obj.save()
             return obj
 
@@ -483,7 +483,7 @@ For deeper understanding here's an example of custom pipeline for 'edit' action.
 
         def edit__perm(request, **kwargs):
             # Custom permission check
-            if kwargs['obj'].author != request.user:
+            if kwargs['obj'].owner != request.user:
                 return self.deny(request)
 
         def edit__form(request, **kwargs):

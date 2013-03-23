@@ -7,11 +7,8 @@ admin.autodiscover()
 import smarter
 site = smarter.Site()
 
-# UGLY DEBUG :)
-from django.db import models
-class TestModel(models.Model):
-    test_field = models.TextField()
-site.register(smarter.GenericViews, TestModel)
+from pages.views import PageViews
+site.register(PageViews)
 
 urlpatterns = patterns('',
     # Examples:
@@ -21,7 +18,9 @@ urlpatterns = patterns('',
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
+    # Generic views
+    url(r'^', include(site.urls)),
+
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^', include(site.urls)),
 )

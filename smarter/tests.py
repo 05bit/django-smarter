@@ -23,6 +23,7 @@ def handler404(request):
 class TestModel(models.Model):
     """Model for tests."""
     text = models.TextField()
+    is_published = models.BooleanField(default=True)
 
     def get_absolute_url(self):
         return ('/test/testmodel/%s/' % self.pk)
@@ -39,7 +40,13 @@ class AnotherTestModel(models.Model):
 class TestViews(smarter.GenericViews):
     options = {
         'add': {
-            'initial': ('text',)
+            'initial': ('text',),
+            'fields': ('text',),
+        },
+
+        'publish': {
+            'url': r'(?P<pk>\d+)/publish/',
+            'exclude': ('text',),
         },
 
         'details-extended': {
@@ -118,6 +125,14 @@ class Tests(TestCase):
     def test_initial_option(self):
         r = self.client.get('/test/testmodel/add/?text=Hohoho!')
         self.assertTrue('Hohoho!</textarea>' in r.content)
+
+    def test_fields_option(self):
+        r = self.client.get('/test/testmodel/add/')
+        self.assertTrue(not 'id_is_published' in r.content)
+
+    def test_exclude_option(self):
+        r = self.client.get('/test/testmodel/publish/')
+        self.assertTrue(not 'id_text' in r.content)        
 
     def test_generic_views_write(self):
         """

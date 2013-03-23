@@ -35,15 +35,15 @@ _baseconfig = {
     },
     'add': {
         'url': r'add/',
-        'redirect': (lambda view, request, **kw: kw['obj'].get_absolute_url()),
+        'redirect': lambda view, request, **kwargs: view.get_url('details', pk=kwargs['obj'].pk),
     },
     'edit': {
         'url': r'(?P<pk>\d+)/edit/',
-        'redirect': (lambda view, request, **kw: kw['obj'].get_absolute_url()),
+        'redirect': lambda view, request, **kwargs: view.get_url('details', pk=kwargs['obj'].pk),
     },
     'remove': {
         'url': r'(?P<pk>\d+)/remove/',
-        'redirect': '../',
+        'redirect': lambda view, request, **kwargs: view.get_url('index'),
     },
 }
 
@@ -262,6 +262,10 @@ class GenericViews(object):
 
         return form
 
+    def get_url(self, action, *args, **kwargs):
+        from django.core.urlresolvers import reverse
+        return reverse(self._url_name(action), args=args, kwargs=kwargs)
+
     def deny(self, request, message=None):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied
@@ -361,7 +365,8 @@ class GenericViews(object):
                 return redirect(redirect_path(self, request, **kwargs))
             else:
                 return redirect(redirect_path)
-        return render(request, self.get_template(request), kwargs)
+        return render(request, self.get_template(request), kwargs,
+                      content_type='application/json' if request.is_ajax() else None)
 
     def _view(self, action):
         def inner(request, **kwargs):
