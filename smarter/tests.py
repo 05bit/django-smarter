@@ -154,6 +154,13 @@ class Tests(TestCase):
         except TemplateDoesNotExist:
             pass
 
+    def test_remove_view(self):
+        TestModel.objects.create(id=200, text='Oh! They want to remove me!')
+        self._test_url('/test/testmodel/200/remove/')
+        self._test_url('/test/testmodel/200/') # GET can't remove
+        self.client.post('/test/testmodel/200/remove/')
+        self._test_url('/test/testmodel/200/', 404) # POST can!
+
     def test_decorated_view(self):
         with self.settings(LOGIN_URL='/test/testmodel/'):
             r = self.client.get('/test/testmodel/1/decorated/')

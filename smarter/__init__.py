@@ -272,14 +272,8 @@ class GenericViews(object):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied
 
-    def index(self, request, **kwargs):
-        return {'objects_list': self.get_objects_list(kwargs)}
-
-    def index__form(self, request, **kwargs):
+    def add(self, request):
         pass
-
-    def index__done(self, request, **kwargs):
-        return render(request, self.get_template(request), kwargs)
 
     def details(self, request, **kwargs):
         return {'obj': self.get_object(**kwargs)}
@@ -290,8 +284,22 @@ class GenericViews(object):
     def details__done(self, request, **kwargs):
         return render(request, self.get_template(request), kwargs)
 
-    def add(self, request):
+    def index(self, request, **kwargs):
+        return {'objects_list': self.get_objects_list(kwargs)}
+
+    def index__form(self, request, **kwargs):
         pass
+
+    def index__done(self, request, **kwargs):
+        return render(request, self.get_template(request), kwargs)
+
+    def remove(self, request, **kwargs):
+        return {'obj': self.get_object(**kwargs)}
+
+    def remove__form(self, request, **kwargs):
+        if request.method == 'POST':
+            kwargs['obj'].delete()
+            return {'form_saved': True}
 
     def _urls(self):
         return [url(r'^' + self.get_param(action, 'url') + r'$',
@@ -345,11 +353,11 @@ class GenericViews(object):
             kwargs.pop('form', None)
             return kwargs
 
-    def _pipe__save(self, request, form=None, **kwargs):
+    def _pipe__save(self, request, **kwargs):
         """
         Saves form and returns saved object.
         """
-        return form.save()
+        return kwargs['form'].save()
 
     def _pipe__post(self, request, **kwargs):
         """
