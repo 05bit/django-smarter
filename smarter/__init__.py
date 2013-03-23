@@ -151,6 +151,11 @@ class GenericViews(object):
     }
 
     def __init__(self, **kwargs):
+        """
+        Creates and initializes generic views handler. You should not
+        call it directly, as views are created while registering
+        ``Site.urls``.
+        """
         options = getattr(self, 'options', {})
         defaults = getattr(self, 'defaults', {})
 
@@ -191,8 +196,8 @@ class GenericViews(object):
     def get_objects_list(self, request, **kwargs):
         return self.model.objects.filter(**kwargs)
 
-    def get_initial(self, request_or_action):
-        initial_fields, initial = self.get_param(request_or_action, 'initial'), {}
+    def get_initial(self, request):
+        initial_fields, initial = self.get_param(request, 'initial'), {}
         if initial_fields:
             for f in initial_fields:
                 if f in request.GET:

@@ -38,6 +38,10 @@ class AnotherTestModel(models.Model):
 
 class TestViews(smarter.GenericViews):
     options = {
+        'add': {
+            'initial': ('text',)
+        },
+
         'details-extended': {
             'url': r'(?P<pk>\d+)/extended/',
             'template': 'details_extended.html',
@@ -110,6 +114,10 @@ class Tests(TestCase):
         self._test_url('/test/testmodel/100/')
         self._test_url('/test/testmodel/100/edit/')
         self._test_url('/test/testmodel/100/remove/')
+
+    def test_initial_option(self):
+        r = self.client.get('/test/testmodel/add/?text=Hohoho!')
+        self.assertTrue('Hohoho!</textarea>' in r.content)
 
     def test_generic_views_write(self):
         """

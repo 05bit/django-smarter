@@ -390,6 +390,9 @@ smarter.GenericViews
 | **get_param**\(``self, request_or_action, name, default=None``)
 |  - method, returns option parameter by name for action or per-request
 |
+| **get_initial**\(``self, request``)
+|  - method, returns form initial data per-request
+|
 | **<action>**\(``request, **kwargs``)
 |  - method, 1st (starting) handler in default pipeline
 |
@@ -421,17 +424,25 @@ The result is either **None** or **dict** or **HttpResponse** object:
 
 For example, 'edit' action pipeline is:
 
-==========  =====================================   ================================================
-  Method               Parameters                                 Result
-==========  =====================================   ================================================
-edit        ``request, **kwargs`` 'pk'              ``{'obj': obj}``
-edit__perm  ``request, **kwargs`` 'obj'             pass (``None``) or ``PermissionDenied`` exception
-edit__form  ``request, **kwargs`` 'obj'             ``{'form': form, 'obj': obj}`` (success) or
-                                                    ``{'form': 'form'}`` (fail)
-edit__ctxt  ``request, **kwargs`` 'obj', 'form'     pass (``None``) by default
-edit__done  ``request, **kwargs`` 'obj', 'form'     render template or redirect to
+==========  =====================================   ===================================================
+  Method               Parameters                                       Result
+==========  =====================================   ===================================================
+edit        ``request, **kwargs`` 'pk'              ``{'obj': obj, 'form': {'instance': obj}}``
+
+edit__perm  ``request, **kwargs`` 'obj', 'form'     pass (``None``) or ``PermissionDenied`` exception
+
+edit__form  ``request, **kwargs`` 'obj', 'form'     | ``{'form': form, 'obj': obj, 'form_saved': True}``
+                                                    | - form successfully saved
+                                                    | ``{'form': form, 'obj': obj}``
+                                                    | - first open or form contains errors
+
+edit__ctxt  ``request, **kwargs``                   pass (``None``) by default
+            'obj', 'form', 'form_saved'
+
+edit__done  ``request, **kwargs``
+            'obj', 'form', 'form_saved'             render template or redirect to
                                                     ``obj.get_absolute_url()``
-==========  =====================================   ================================================
+==========  =====================================   ===================================================
 
 Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached with declarative style using **options**. If you're going too far with overriding views, that may mean you'd better write some views from scratch separate from "smarter".
 
@@ -450,8 +461,8 @@ Where:
 
 So, in `Getting started`_ example named URLs are 'page-add', 'page-edit', 'page-remove', etc., as we don't provide any custom prefixes and delimiter is '-' by default.
 
-Lightweight example
--------------------
+Pipeline example
+----------------
 
 For deeper understanding here's an example of custom pipeline for 'edit' action. It's not actually a **recommended** way, as we can reach the same effect without overriding ``edit`` method by defining ``options['edit']['initial']``, but it illustrates the principle of pipeline.
 
@@ -466,33 +477,34 @@ For deeper understanding here's an example of custom pipeline for 'edit' action.
             # Custom initial title
             initial = {'title': request.GET.get('title': '')}
             return {
-                'initial': initial,
                 'obj': self.get_object(pk=pk),
+                'form' {'initial': initial, 'instance': obj}
             }
 
         def edit__perm(request, **kwargs):
             # Custom permission check
-            obj = kwargs['obj']
-            if obj.author != request.user:
+            if kwargs['obj'].author != request.user:
                 return self.deny(request)
 
         def edit__form(request, **kwargs):
-            # Actually, nothing custom here, it's totally generic
-            instance = kwargs.pop('obj')
-            form = self.get_form(request, instance=instance, **kwargs)
-            if form.is_valid():
-                return {'obj': self.edit__save(request, form, **kwargs)}
-            else:
-                return {'form': form}
+            # Actually, nothing custom here, it's totally generic:
+            # we should validate & save form and then return dict
+            # with 'form_saved' set to True if it's ok.
+            kwargs['form'] = self.get_form(request, **kwargs)
+            if kwargs['form'].is_valid():
+                kwargs['obj'] = self.edit__save(request, **kwargs)
+                kwargs['form_saved'] = True
+            return kwargs
 
-        def edit__done(request, obj=None, form=None):
+        def edit__done(request, obj=None, form=None, form_saved=None):
             # Custom redirect to pages index on success
-            if obj:
+            if form_saved:
                 # Success, redirecting!
                 return redirect(self.get_url('index'))
             else:
-                # Fail, form has errors
-                return render(request, self.get_template(request), {'form': form})
+                # Start edit or form has errors
+                return render(request, self.get_template(request),
+                              {'obj': obj, 'form': form})
 
 Complete example
 ----------------
