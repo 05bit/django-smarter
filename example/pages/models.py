@@ -11,3 +11,14 @@ class Page(models.Model):
 
     def get_absolute_url(self):
         return reverse('page-details', kwargs={'pk': self.pk})
+
+
+class PageFile(models.Model):
+    page = models.ForeignKey(Page)
+    attachment = models.FileField(upload_to='files')
+
+    def __unicode__(self):
+        return unicode(self.attachment)
+
+    def get_absolute_url(self):
+        return self.attachment.url

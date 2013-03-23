@@ -31,10 +31,7 @@ class TestModel(models.Model):
 
 class AnotherTestModel(models.Model):
     """Well, another model for tests."""
-    text = models.TextField()
-
-    def get_absolute_url(self):
-        return ('/test/testmodel/%s/' % self.pk)
+    another_text = models.TextField()
 
 
 class TestViews(smarter.GenericViews):
@@ -65,7 +62,14 @@ class TestViews(smarter.GenericViews):
             'url': r'(?P<pk>\d+)/protected/',
             'form': None,
             'permissions': ('smarter.view_testmodel',)
-        }
+        },
+    }
+
+
+class AnotherTestViews(smarter.GenericViews):
+    options = {
+        # 'index': None, # Won't be enabled
+        'add': None, # Won't be enabled
     }
 
 
@@ -76,6 +80,7 @@ class Tests(TestCase):
         self.client = Client()
         self.site = smarter.Site()
         self.site.register(TestViews, TestModel)
+        self.site.register(AnotherTestViews, AnotherTestModel, base_url='another')
         TestModel.objects.create(id=1, text='The first object.')
 
         global urlpatterns
@@ -121,6 +126,7 @@ class Tests(TestCase):
         self._test_url('/test/testmodel/100/')
         self._test_url('/test/testmodel/100/edit/')
         self._test_url('/test/testmodel/100/remove/')
+        self._test_url('/test/fakeprefix-testmodel/', 404)
 
     def test_initial_option(self):
         r = self.client.get('/test/testmodel/add/?text=Hohoho!')
@@ -165,6 +171,10 @@ class Tests(TestCase):
         with self.settings(LOGIN_URL='/test/testmodel/'):
             r = self.client.get('/test/testmodel/1/decorated/')
             self.assertRedirects(r, '/test/testmodel/?next=/test/testmodel/1/decorated/')
+
+    def test_disabled_view(self):
+        self._test_url('/test/another/')
+        self._test_url('/test/another/add/', 404)
 
     def test_permissions(self):
         self._test_url('/test/testmodel/1/protected/', 403)

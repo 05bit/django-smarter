@@ -7,8 +7,10 @@ admin.autodiscover()
 import smarter
 site = smarter.Site()
 
-from pages.views import PageViews
+# from pages.models import Page, PageFile
+from pages.views import PageViews, PageFileViews
 site.register(PageViews)
+site.register(PageFileViews)
 
 urlpatterns = patterns('',
     # Examples:
@@ -24,3 +26,13 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
 )
+
+
+from django.conf import settings
+
+if settings.DEBUG:
+    urlpatterns += patterns('',
+        url(r'^media/(?P<path>.*)$', 'django.views.static.serve', {
+            'document_root': settings.MEDIA_ROOT,
+        }),
+   )

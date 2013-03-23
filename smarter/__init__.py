@@ -110,9 +110,9 @@ class Site(object):
             prefix_bits.append(model_name)
 
         if base_url:
-            base_url = '%s/' % (base_url.strip(' /') or model_name)
+            base_url = '^%s/' % (base_url.strip(' /') or model_name)
         else:
-            base_url = '%s/' % model_name
+            base_url = '^%s/' % model_name
 
         self._registered.append({
                 'base_url': base_url,
