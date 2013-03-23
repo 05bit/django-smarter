@@ -159,36 +159,38 @@ class GenericViews(object):
         options = getattr(self, 'options', {})
         defaults = getattr(self, 'defaults', {})
 
-        self._actions = set(_baseconfig.keys()).union(options.keys())
+        # Options dict and actions names list.
+        self._options, self._actions = {}, []
+
+        # Merge base, default and custom options to self._options dict
+        # and skip disabled actions - for which options is explicitly
+        # set to None.
+        for action in set(_baseconfig.keys()).union(options.keys()):
+            try:
+                if options[action] is None:
+                    continue
+            except KeyError:
+                pass
+
+            self._actions.append(action)
+            self._options[action] = dict(_baseconfig.get(action, {}).items() +
+                                         defaults.items() + 
+                                         options.get(action, {}).items())
+
+        # Validate action names.
         for action in self._actions:
             if re.match(r"^((get_|_|-).*|.*__.*)", action):
                 raise InvalidAction("Invalid action name: %s" % action)
 
+        # Validate and setup other params.
         if not kwargs['model']:
             raise Exception("No model specified for views!")
-
         self.model, self._delim, self._prefix = \
             kwargs['model'], kwargs['delim'], kwargs['prefix']
 
     def get_param(self, request_or_action, name, default=None):
-        options = getattr(self, 'options', {})
-        defaults = getattr(self, 'defaults', {})
         action = getattr(request_or_action, _action, request_or_action)
-
-        if not action in self._actions:
-            raise Exception("No such action %s:" % action)
-
-        if action in options and name in options[action]:
-            return options[action][name]
-        elif name in defaults:
-            return defaults[name]
-        elif action in _baseconfig:
-            try:
-                return _baseconfig[action][name]
-            except KeyError:
-                pass
-
-        return default
+        return self._options[action].get(name, default)
 
     def get_object(self, **kwargs):
         return get_object_or_404(self.model, **kwargs)
