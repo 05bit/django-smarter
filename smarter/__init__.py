@@ -89,8 +89,9 @@ class Site(object):
         """
         from django.db.models import Model
 
+        model = model or views.model
         if not model:
-            model = views.model
+            raise Exception("Model is not specified, views must be registered for some model!")
 
         for r in self._registered:
             if r['model'] == model and r['views'] == views:
@@ -99,13 +100,19 @@ class Site(object):
         prefix_bits, model_name = [], model._meta.object_name.lower()
         if self._prefix:
             prefix_bits.append(self._prefix)
+
         if prefix:
             prefix_bits.append(prefix)
         else:
             prefix_bits.append(model_name)
 
+        if base_url:
+            base_url = '%s/' % (base_url.strip(' /') or model_name)
+        else:
+            base_url = '%s/' % model_name
+
         self._registered.append({
-                'base_url': base_url and base_url or '%s/' % model_name,
+                'base_url': base_url,
                 'prefix': self._delim.join(prefix_bits),
                 'delim': self._delim,
                 'model': model,

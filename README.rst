@@ -1,7 +1,7 @@
 django-smarter
 ==============
 
-**Smarter** way of getting declarative style generic views in Django.
+**Smarter** declarative style generic views for Django.
 
 It's a simple one-file helper for painless adding form-based CRUD (create-read-update-delete) views to your application. If you'll feel pain, that's may be not this case, so don't get smarter that way! :)
 
@@ -20,7 +20,7 @@ So many times we have to write:
             form = EditPostForm()
         return render(request, 'edit_post.html', {'form': form})
 
-Right? Well, it's ok to write some reusable helpers for such repeatable views, but when we don't need sophisticated ones we can go **smarter**:
+Right? Well, it's ok to write some reusable helpers for such repeatable views, but when we don't need sophisticated ones here we go:
 
 .. sourcecode:: python
 
@@ -75,7 +75,7 @@ You *may* add ``smarter`` to your ``INSTALLED_APPS`` to get default templates an
         # ...
     )
 
-Then you should define your views and include them in urls, see `Getting started`_ section below.
+Then you should define your views and include them in URLs, see `Getting started`_ section below.
 
 
 Getting started
@@ -86,7 +86,7 @@ Create your models
 
 Let’s define a simple model:
 
-.. code:: python
+.. sourcecode:: python
 
     class Page(models.Model):
         author = models.ForeignKey('auth.User')
@@ -96,14 +96,14 @@ Let’s define a simple model:
         def __unicode__(self):
             return self.title
 
-Create generic views
-~~~~~~~~~~~~~~~~~~~~
+Register views
+~~~~~~~~~~~~~~
 
-Now you can create generic views for the model.
+Now you can add generic views for the model.
 
-In your urls.py:
+In your `urls.py`:
 
-.. code:: python
+.. sourcecode:: python
 
     import smarter
     from myapp.models import Page
@@ -117,7 +117,7 @@ In your urls.py:
         # other urls ...
     )
 
-This will create generic views for Page model, accessed by urls:
+This code creates generic views for `Page` model, accessed by urls:
 
 - /page/
 - /page/add/
@@ -125,21 +125,77 @@ This will create generic views for Page model, accessed by urls:
 - /page/``<pk>``/edit/
 - /page/``<pk>``/remove/
 
+Customize views
+~~~~~~~~~~~~~~~
+
+Subclass from `smarter.GenericViews` and set custom options and/or override methods.
+
+.. sourcecode:: python
+
+    from django.contrib.auth.decorators import login_required
+    import smarter
+    from .models import Page
+
+    class PageViews(smarter.GenericViews):
+        model = Page
+
+        options = {
+            'add': {
+                'decorators': (login_required,)
+                'exclude': ('author',)
+            },
+        }
+
+        def add__save(self, request, form, **kwargs):
+            obj = form.save(commit=False)
+            obj.author = request.user
+            obj.save()
+            return obj
+
+And don't forget to register new views in `urls.py`:
+
+.. sourcecode:: python
+
+    import smarter
+    from myapp.views import PageViews
+
+    site = smarter.Site()
+    site.register(PageViews) # model argument is not required as model is already set in PageViews
+
+    urlpatterns = patterns('',
+        url(r'^', include(site.urls)),
+    )
+
 Customize templates
 ~~~~~~~~~~~~~~~~~~~
 
-Each url by default is mapped to view method and template.
+In the example above each URL by default to template.
 
 ======================  ======================= =====================
          URL                    Template                Context
 ======================  ======================= =====================
-/page/                  myapp/page_index.html   {{ objects_list }}
-/page/add/              myapp/page_add.html     {{ obj }}, {{ form }}
-/page/``<pk>``/         myapp/page_details.html {{ obj }}
-/page/``<pk>``/edit/    myapp/page_edit.html    {{ obj }}, {{ form }}
-/page/``<pk>``/remove/  myapp/page_remove.html  {{ obj }}
+/page/                  myapp/page/index.html   {{ objects_list }}
+/page/add/              myapp/page/add.html     {{ obj }}, {{ form }}
+/page/``<pk>``/         myapp/page/details.html {{ obj }}
+/page/``<pk>``/edit/    myapp/page/edit.html    {{ obj }}, {{ form }}
+/page/``<pk>``/remove/  myapp/page/remove.html  {{ obj }}
 ======================  ======================= =====================
 
+Default template search paths are:
+
+.. sourcecode:: python
+
+    ('%(app)s/%(model)s/%(action)s.html',
+     '%(app)s/%(model)s/%(action)s.ajax.html',
+     'smarter/%(action)s.html',
+     'smarter/_form.html',
+     'smarter/_ajax.html',)
+
+So, you have some easy way options:
+
+1. you may override matching templates
+2. you may set 'template' key in `PageViews.options` for each action
+3. you may override default search paths by settings new `PageViews.defaults` (read `Options`_ section for details)
 
 API reference
 -------------
@@ -147,25 +203,34 @@ API reference
 Actions
 ~~~~~~~
 
-**Actions** are actually 'ids for views'. Well, each action has id like 'add', 'edit', 'bind-to-user' and is mapped to urls like '/add/', '/edit/', '/bind-to-user/'. And each action is bound to view method with underscores instead of '-'.
+**Actions** are actually "ids" for views. Well, each action has id like 'add', 'edit', 'bind-to-user' and is mapped to view method with underscores instead of '-': `add`, `edit`, `bind_to_user`.
 
-``smarter.GenericViews`` class defines such actions by default:
+In ``smarter.GenericViews`` class such actions are defined by default:
 
-=======     =================   =========================
-Action      URL                 View method
-=======     =================   =========================
-index       /                   index(``request``)
-add         /add/               add(``request``)
-details     /``<pk>``/          details(``request, pk``)
-edit        /``<pk>``/edit/     edit(``request, pk``)
-remove      /``<pk>``/remove/   remove(``request, pk``)
-=======     =================   =========================
+=======     =================   =========================   ========================
+Action      URL                 View method                 Named URL
+=======     =================   =========================   ========================
+index       /                   index(``request``)          [prefix]-[model]-index
+add         /add/               add(``request``)            [prefix]-[model]-add
+details     /``<pk>``/          details(``request, pk``)    [prefix]-[model]-details
+edit        /``<pk>``/edit/     edit(``request, pk``)       [prefix]-[model]-edit
+remove      /``<pk>``/remove/   remove(``request, pk``)     [prefix]-[model]-remove
+=======     =================   =========================   ========================
 
+What is **[prefix]**? Prefix is defined for `smarter.Site` instance:
+
+.. sourcecode:: python
+
+    site = smarter.Site(prefix='myapp')
+    site.register(PageViews)
+    # ...
+
+So, it **can be empty** and URL names without prefix are defined as `[model]-index`. Please, read `Reversing urls`_ section for more details.
 
 Options
 ~~~~~~~
 
-**Options** is a ``GenericViews.options`` class property, it's a dict containing actions names as keys and actions parameters as values. Parameters structure is:
+**Options** is a `GenericViews.options` dict, class property, it contains actions names as keys and actions parameters as values. Parameters structure is:
 
 .. sourcecode:: python
 
@@ -221,7 +286,9 @@ And here's ``GenericViews.defaults`` class attribute:
         'decorators': None,
     }
 
-Action names and urls
+When option value can't be found in options dict for action it's searched in `GenericViews.defaults`. Note, that defaults are applied to **all actions**.
+
+Action names and URLs
 ~~~~~~~~~~~~~~~~~~~~~
 
 Actions are named so they can be mapped to views methods and they should not override reserved attributes and methods, to they:
@@ -233,7 +300,7 @@ Actions are named so they can be mapped to views methods and they should not ove
 
 Sure, you'll get an exception if something goes wrong with that. We're following `'errors should never pass silently'` here.
 
-And here's how urls for default views are defined:
+And here's how URLs for default views are defined:
 
 .. sourcecode:: python
 
@@ -255,13 +322,6 @@ And here's how urls for default views are defined:
         }
     }
 
-Reversing urls
-~~~~~~~~~~~~~~
-
-Every action mapped to named url:
-
-    ``<site prefix>-<view prefix>-<action>``
-
 smarter.Site
 ~~~~~~~~~~~~
 
@@ -272,7 +332,27 @@ smarter.Site
 |  - method to add your views for model
 |
 | **urls**
-|  - property
+|  - property, returns URLs sequence for all registered views that can be included in `urlpatterns`
+
+Site
+++++
+
+Constructor gets two keyword arguments:
+
+1. `prefix=None`, for prefixing URL names for views registered with site object, like '**%(prefix)s**-%(model)s-%(action)s'. If prefix if empty, URLs are named without prefix, like '%(model)s-%(action)s'.
+
+2. `delim='-'`, delimiter for URL names, can be '-', '_' or empty string. URL names are composed with specified delimiter and with uderscore it would be like '%(prefix)s_%(model)s_%(action)s'.
+
+Site.register
++++++++++++++
+
+This method gets 1 required argument for views class and optional keyword arguments:
+
+1. `model=None`, model class for views. This argument is required if views class doesn't have 'model' property.
+
+2. `base_url=None`, base URL for views. If empty, then lower-case model name is used, so base URL becomes '%(model)s/'.
+
+3. `prefix=None`, prefix for URL names. If empty, then lower-case model name is used.
 
 smarter.GenericViews
 ~~~~~~~~~~~~~~~~~~~~
@@ -281,13 +361,13 @@ smarter.GenericViews
 |  - class property, model class for views
 |
 | **defaults**
-|  - class property, dict with default options applied to all actions until being overriden by ``options``
+|  - class property, dict with default options applied to all actions until being overriden by `options`
 |
 | **options**
 |  - class property, dict for views configration, each key corresponds to single action like 'add', 'edit', 'remove' etc.
 |
 | **deny**\(``request, message=None``)
-|  - method, is called when action is not permitted for user, raises ``PermissionDenied`` exception or can return ``HttpResponse`` object
+|  - method, is called when action is not permitted for user, raises `PermissionDenied` exception or can return `HttpResponse` object for redirecting or rendering some page
 |
 | **get_url**\(``action, *args, **kwargs``)
 |  - method, returns url for given action name
@@ -325,26 +405,6 @@ smarter.GenericViews
 | **<action>__done**\(``request, **kwargs``)
 |  - method, 5th (last) view handler in default pipeline, performs render or redirect
 
-
-Overriding templates
-~~~~~~~~~~~~~~~~~~~~
-
-You will certainly need to override templates. As you may see in `Options`_ section default template search paths are:
-
-.. sourcecode:: python
-
-    ('%(app)s/%(model)s/%(action)s.html',
-     '%(app)s/%(model)s/%(action)s.ajax.html',
-     'smarter/%(action)s.html',
-     'smarter/_form.html',
-     'smarter/_ajax.html',)
-
-So, you have some easy way options:
-
-1. you may override matching templates
-2. you may set **'template'** key for action options
-3. you may override 'default' class property in your views subclass, why not
-
 Pipeline
 ~~~~~~~~
 
@@ -356,21 +416,39 @@ The result is either **None** or **dict** or **HttpResponse** object:
 2. **dict** - result is passed to next pipeline method,
 3. **HttpResponse** - returned immidiately as view response.
 
-For example, '**edit**' action pipeline is:
+For example, 'edit' action pipeline is:
 
 ==========  =====================================   =============================================
   Method               Parameters                                 Result
 ==========  =====================================   =============================================
-edit        ``request, **kwargs`` 'pk'              {'obj': obj}
-edit__perm  ``request, **kwargs`` 'obj'             pass (None) or PermissionDenied exception
-edit__form  ``request, **kwargs`` 'obj'             {'form': form, 'obj': obj} *(success)* or
-                                                    {'form': 'form'} *(fail)*
-edit__ctxt  ``request, **kwargs`` 'obj', 'form'     pass (None) by default
+edit        ``request, **kwargs`` 'pk'              `{'obj': obj}`
+edit__perm  ``request, **kwargs`` 'obj'             pass (`None`) or `PermissionDenied` exception
+edit__form  ``request, **kwargs`` 'obj'             `{'form': form, 'obj': obj}` (success) or
+                                                    `{'form': 'form'}` (fail)
+edit__ctxt  ``request, **kwargs`` 'obj', 'form'     pass (`None`) by default
 edit__done  ``request, **kwargs`` 'obj', 'form'     render template or redirect to
-                                                    ``obj.get_absolute_url()``
+                                                    `obj.get_absolute_url()`
 ==========  =====================================   =============================================
 
 Note, that in general you won't need to redefine pipeline methods, as in many cases custom behavior can be reached with declarative style using **options**. If you're going too far with overriding views, that may mean you'd better write some views from scratch separate from "smarter".
+
+Reversing URLs
+~~~~~~~~~~~~~~
+
+Every action mapped to named URL. Names are composed as::
+
+    [site prefix][delimiter][views prefix][delimiter][action]
+
+Where:
+
+- **site prefix** is 'prefix' parameter in `smarter.Site`_ constructor
+- **delimiter** is 'delim' paratemer in `smarter.Site`_ constructor
+- **views prefix** is 'prefix' parameter in `Site.register`_ method
+
+So, in `Getting started`_ example named URLs are 'page-add', 'page-edit', 'page-remove', etc., as we don't provide any custom prefixes and delimiter is '-' by default.
+
+Lightweight example
+-------------------
 
 But for deeper understanding here's an example of custom pipeline for 'edit' action:
 
@@ -413,12 +491,7 @@ But for deeper understanding here's an example of custom pipeline for 'edit' act
                 # Fail, form has errors
                 return render(request, self.get_template(request), {'form': form})
 
-
-Lightweight example
--------------------
-
-...
-
+It's not actually a **recommended** way, as we can reach the same effect without overriding `edit` method by defining `options['edit']['initial']`, but it illustrates the principle of pipeline.
 
 Complete example
 ----------------
