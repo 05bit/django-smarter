@@ -35,15 +35,12 @@ _baseconfig = {
     },
     'add': {
         'url': r'add/',
-        'redirect': lambda view, request, **kwargs: view.get_url('details', pk=kwargs['obj'].pk),
     },
     'edit': {
         'url': r'(?P<pk>\d+)/edit/',
-        'redirect': lambda view, request, **kwargs: view.get_url('details', pk=kwargs['obj'].pk),
     },
     'remove': {
         'url': r'(?P<pk>\d+)/remove/',
-        'redirect': lambda view, request, **kwargs: view.get_url('index'),
     },
 }
 
@@ -148,7 +145,11 @@ class GenericViews(object):
             'smarter/_form.html',
             'smarter/_ajax.html',),
         'decorators': None,
-        'ajax': (lambda view, request, **kwargs: render(request, view.get_template(request), kwargs)),
+        'redirect': (lambda view, request, **kwargs:
+                     'obj' in kwargs and view.get_url('details', pk=kwargs['obj'].pk)
+                                      or view.get_url('index')),
+        'ajax': (lambda view, request, **kwargs:
+                 render(request, view.get_template(request), kwargs)),
     }
 
     def __init__(self, **kwargs):
