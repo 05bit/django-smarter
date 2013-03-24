@@ -1,6 +1,6 @@
-LICENSE
-AUTHORS
-README.rst
+include LICENSE
+include AUTHORS
+include README.rst
 recursive-include smarter/templates *
 global-exclude .DS_Store
 global-exclude Thumbs.db
