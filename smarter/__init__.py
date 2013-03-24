@@ -247,14 +247,17 @@ class GenericViews(object):
                 'exclude': self.get_param(request, 'exclude'),
                 'fields': self.get_param(request, 'fields'),
             })
-            form_class = modelform_factory(model=self.model, **form_options)
+            if issubclass(form_options['form'], ModelForm):
+                form_class = modelform_factory(model=self.model, **form_options)
+            else:
+                form_class = form_options['form']
         else:
             return
 
         form_kwargs = kwargs.get('form', {})
         form_kwargs.setdefault('initial', self.get_initial(request))        
         if request.method == 'POST':
-            form = form_class(request.POST, files=request.FILES, **form_kwargs)
+            form = form_class(data=request.POST, files=request.FILES, **form_kwargs)
         else:
             form = form_class(**form_kwargs)
 
