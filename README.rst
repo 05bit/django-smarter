@@ -397,7 +397,7 @@ smarter.GenericViews
 |  - method, 1st (starting) handler in default pipeline
 |
 | **<action>__perm**\(``request, **kwargs``)
-|  - method, 2nd handler in default pipeline, checks permissions
+|  - method, 2nd handler in default pipeline, checks extended permissions, e.g. per-object permissions (basic checks are handler separatelly)
 |
 | **<action>__form**\(``request, **kwargs``)
 |  - method, 3rd handler in default pipeline, manages form processing
@@ -422,7 +422,9 @@ The result is either **None** or **dict** or **HttpResponse** object:
 2. **dict** - result is passed to next pipeline method,
 3. **HttpResponse** - returned immidiately as view response.
 
-For example, 'edit' action pipeline is:
+For example, 'edit' action pipeline is: 'edit' -> 'edit__perm' -> 'edit__form' -> 'edit__post' -> 'edit__done'.
+
+Note about **__perm** step. Basic permissions are checked **before** pipeline start view (e.g 'edit'), as if view were decorated with ``permission_required`` decorator. Actualy we're not using decorator, because we need to call our custom ``deny()`` method if permissions are not sufficient, but it's not the key. The key is **you don't need to check basic permissions in custom __perm method, it's necessary for per-object permissions checks.**
 
 ==========  =====================================   ===================================================
   Method               Parameters                                       Result

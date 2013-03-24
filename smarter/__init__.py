@@ -317,7 +317,7 @@ class GenericViews(object):
         """
         View method pipeline.
         """
-        pipes = ('', 'perm', 'form', 'post', 'done')
+        pipes = ('init', '', 'perm', 'form', 'post', 'done')
         for pipe in pipes:
             yield self._get_pipe(action, pipe)
 
@@ -334,21 +334,32 @@ class GenericViews(object):
         else:
             return getattr(self, name % '_pipe')
 
+    def _pipe__init(self, request, **kwargs):
+        """
+        View initial step: check basic permissions, etc. Here can be
+        placed any logic which can be treated as 'pre-processing'
+        for view.
+
+        Checks base permissions before enter view, and if permissions
+        are not sufficient returns ``self.deny(request)``.
+        """
+        perm = self.get_param(request, 'permissions')
+        if perm and not request.user.has_perm(perm):
+            return self.deny(request)
+
     def _pipe(self, request, **kwargs):
         """
-        Default initial view method. Returns object and
-        form parameters.
+        First 'real' pipeline view method. Returns object and form
+        parameters.
         """
         obj = self.get_object(request, **kwargs)
         return {'obj': obj, 'form': {'instance': obj}}
 
     def _pipe__perm(self, request, **kwargs):
         """
-        Checks permissions.
+        Checks extended per-object permissions.
         """
-        perm = self.get_param(request, 'permissions')
-        if perm and not request.user.has_perm(perm):
-            return self.deny(request)
+        pass
 
     def _pipe__form(self, request, **kwargs):
         """
