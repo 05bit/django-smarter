@@ -477,7 +477,7 @@ For deeper understanding here's an example of custom pipeline for 'edit' action.
             # Custom initial title
             initial = {'title': request.GET.get('title': '')}
             return {
-                'obj': self.get_object(pk=pk),
+                'obj': self.get_object(request, pk=pk),
                 'form' {'initial': initial, 'instance': obj}
             }
 

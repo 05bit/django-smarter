@@ -148,6 +148,7 @@ class GenericViews(object):
             'smarter/_form.html',
             'smarter/_ajax.html',),
         'decorators': None,
+        'ajax': (lambda view, request, **kwargs: render(request, view.get_template(request), kwargs)),
     }
 
     def __init__(self, **kwargs):
@@ -195,7 +196,7 @@ class GenericViews(object):
         action = getattr(request_or_action, _action, request_or_action)
         return self._options[action].get(name, default)
 
-    def get_object(self, **kwargs):
+    def get_object(self, request, **kwargs):
         return get_object_or_404(self.model, **kwargs)
 
     def get_objects_list(self, request, **kwargs):
@@ -279,7 +280,7 @@ class GenericViews(object):
         pass
 
     def details(self, request, **kwargs):
-        return {'obj': self.get_object(**kwargs)}
+        return {'obj': self.get_object(request, **kwargs)}
 
     def details__form(self, request, **kwargs):
         pass
@@ -297,7 +298,7 @@ class GenericViews(object):
         return render(request, self.get_template(request), kwargs)
 
     def remove(self, request, **kwargs):
-        return {'obj': self.get_object(**kwargs)}
+        return {'obj': self.get_object(request, **kwargs)}
 
     def remove__form(self, request, **kwargs):
         if request.method == 'POST':
@@ -316,20 +317,29 @@ class GenericViews(object):
         """
         View method pipeline.
         """
-        pipes = ('%s', '%s__perm', '%s__form', '%s__post', '%s__done')
+        pipes = ('', 'perm', 'form', 'post', 'done')
         for pipe in pipes:
-            method = pipe % action.replace('-', '_')
-            if hasattr(self, method):
-                yield getattr(self, method)
-            else:
-                yield getattr(self, pipe % '_pipe')
+            yield self._get_pipe(action, pipe)
+
+    def _get_pipe(self, request_or_action, name):
+        """
+        Get pipeline method by action and name:
+        {action} or {action}__{name}
+        """
+        action = getattr(request_or_action, _action, request_or_action)
+        name = name and ('%s__' + name) or '%s'
+        meth = name % action.replace('-', '_')
+        if hasattr(self, meth):
+            return getattr(self, meth)
+        else:
+            return getattr(self, name % '_pipe')
 
     def _pipe(self, request, **kwargs):
         """
         Default initial view method. Returns object and
         form parameters.
         """
-        obj = self.get_object(**kwargs)
+        obj = self.get_object(request, **kwargs)
         return {'obj': obj, 'form': {'instance': obj}}
 
     def _pipe__perm(self, request, **kwargs):
@@ -349,7 +359,7 @@ class GenericViews(object):
         if form:
             kwargs['form'] = form
             if form.is_bound and form.is_valid():
-                kwargs['obj'] = self._pipe__save(request, **kwargs)
+                kwargs['obj'] = self._get_pipe(request, 'save')(request, **kwargs)
                 kwargs['form_saved'] = True
             return kwargs
         else:
@@ -375,14 +385,21 @@ class GenericViews(object):
         View processing done: redirect if ``form_saved is ``True`` or
         render template.
         """
+        # AJAX has its own way!
+        if request.is_ajax():
+            ajax = self.get_param(request, 'ajax')
+            if ajax:
+                return ajax(self, request, **kwargs)
+
+        # Always redirect after form save to prevent re-POST.
         if kwargs.get('form_saved', False):
             redirect_path = self.get_param(request, 'redirect')
             if callable(redirect_path):
                 return redirect(redirect_path(self, request, **kwargs))
             else:
                 return redirect(redirect_path)
-        return render(request, self.get_template(request), kwargs,
-                      content_type='application/json' if request.is_ajax() else None)
+
+        return render(request, self.get_template(request), kwargs)
 
     def _view(self, action):
         def inner(request, **kwargs):
