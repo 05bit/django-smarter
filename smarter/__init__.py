@@ -177,12 +177,15 @@ class GenericViews(object):
                                          defaults.items() + 
                                          options.get(action, {}).items())
 
-        # Validate action names.
+        # Validate action names and URLs
         for action in self._actions:
             if re.match(r"^((get_|_|-).*|.*__.*)", action):
                 raise InvalidAction("Invalid action name: %s" % action)
+            if self.get_param(action, 'url') is None:
+                print self._options
+                raise Exception("Undefined URL for action %s!" % action)
 
-        # Validate and setup other params.
+        # Validate and setup other params
         if not kwargs['model']:
             raise Exception("No model specified for views!")
         self.model, self._delim, self._prefix = \
