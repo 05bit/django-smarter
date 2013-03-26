@@ -109,8 +109,10 @@ class Site(object):
         else:
             prefix_bits.append(model_name)
 
-        if base_url:
-            base_url = '^%s/' % (base_url.rstrip('/') or model_name)
+        if base_url == '/':
+            base_url = '^'
+        elif base_url:
+            base_url = '^%s/' % base_url.rstrip('/')
         else:
             base_url = '^%s/' % model_name
 
@@ -324,9 +326,9 @@ class GenericViews(object):
         """
         View method pipeline.
         """
-        pipes = ('init', '', 'perm', 'form', 'post', 'done')
-        for pipe in pipes:
-            yield self._get_pipe(action, pipe)
+        default = ('init', '', 'perm', 'form', 'post', 'done')
+        return [self._get_pipe(action, pipe)
+            for pipe in self.get_param(action, 'pipeline', default)]
 
     def _get_pipe(self, request_or_action, name):
         """

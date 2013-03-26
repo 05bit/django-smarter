@@ -80,7 +80,7 @@ class Tests(TestCase):
         self.client = Client()
         self.site = smarter.Site()
         self.site.register(TestViews, TestModel)
-        self.site.register(AnotherTestViews, AnotherTestModel, base_url='another')
+        self.site.register(AnotherTestViews, AnotherTestModel, base_url='another/')
         TestModel.objects.create(id=1, text='The first object.')
 
         global urlpatterns
