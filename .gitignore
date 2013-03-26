@@ -1,12 +1,15 @@
+# temporary
 .DS_Store*
 Icon?
 Thumbs.db
-
 *.pyc
 *.pyo
 
+# media & db
 example/example/example.db
+example/example/media/*
 
+# dist & docs
 dist/
 docs/_build/
 django_smarter.egg-info/

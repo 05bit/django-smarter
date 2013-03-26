@@ -93,6 +93,9 @@ class Site(object):
         if not model:
             raise Exception("Model is not specified, views must be registered for some model!")
 
+        if base_url and not base_url.endswith('/'):
+            raise Exception("`base_url` have to end with backslash ('/')")
+
         for r in self._registered:
             if r['model'] == model and r['views'] == views:
                 raise AlreadyRegistered()
@@ -107,7 +110,7 @@ class Site(object):
             prefix_bits.append(model_name)
 
         if base_url:
-            base_url = '^%s/' % (base_url.strip(' /') or model_name)
+            base_url = '^%s/' % (base_url.rstrip('/') or model_name)
         else:
             base_url = '^%s/' % model_name
 
