@@ -269,7 +269,17 @@ class GenericViews(object):
         for k, v in (self.get_param(request, 'labels') or {}).items():
             form.fields[k].label = v
         for k, v in (self.get_param(request, 'widgets') or {}).items():
-            form.fields[k].widget = v
+            # TODO: refactoring
+            if isinstance(v, type):
+                widget = v()
+                extra_attrs = form.fields[k].widget_attrs(widget)
+                if extra_attrs:
+                    widget.attrs.update(extra_attrs)
+                if hasattr(form.fields[k], 'choices'):
+                    widget.choices = form.fields[k].choices
+            else:
+                widget = v
+            form.fields[k].widget = widget
         for k, v in (self.get_param(request, 'help_text') or {}).items():
             form.fields[k].help_text = v
         for k, v in (self.get_param(request, 'required') or {}).items():
