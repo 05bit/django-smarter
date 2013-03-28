@@ -21,11 +21,15 @@ URLs names
 
 Template paths:
 
-* Move templates to new paths:
+* Move templates to new paths::
 
-    ...
+    ('%(app)s/%(model)s/%(action)s.html',
+     '%(app)s/%(model)s/%(action)s.ajax.html',
+     'smarter/%(action)s.html',
+     'smarter/_form.html',
+     'smarter/_ajax.html',)
 
-* or redefine 'template' in defaults, e.g:
+* or redefine 'template' in defaults, e.g::
 
     ('%(app)s/%(model)s_%(action)s.html',
      '%(model)s_%(action)s.html',

@@ -51,6 +51,8 @@ API is finally and completely changed since v0.6 release.
 
 We've made a "quantum jump" by breaking old-and-not-so-good API to new one - solid and nice. Hope you'll like it.
 
+Here's `some hints that may help you with migration <https://django-smarter.readthedocs.org/en/latest/migrate_0.x_to_1.0.html>`_. I'm actually successfully migrated my real-production project, so the hints are based on "real-battle" example.
+
 
 Contributors
 ------------
