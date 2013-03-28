@@ -1,14 +1,15 @@
 django-smarter
 ==============
 
-**Smarter** declarative style generic views for Django.
+Another approach for declarative style generic views for Django. I beleive, it's a bit smarter :)
 
-It's a simple one-file helper for painless adding form-based CRUD (create-read-update-delete) views to your application. If you'll feel pain, that's may be not this case, so don't get smarter that way! :)
+It's a simple one-file helper for painless adding form-based CRUD (create-read-update-delete) views to your application. If you'll feel pain, that's may be not this case, so don't get smarter that way!
 
 So many times we have to write:
 
 .. sourcecode:: python
 
+    @login_required
     def edit_post(request, pk):
         post = get_object_or_404(Post, pk=pk)
         if request.method == 'POST':
@@ -28,10 +29,15 @@ Right? Well, it's ok to write some reusable helpers for such repeatable views, b
         model = Post
         options = {
             'add': {
-                'form': NewPostForm
-            }
+                'form': NewPostForm,
+                'decorators': (login_required,)
+            },
             'edit': {
-                'form': EditPostForm
+                'form': EditPostForm,
+                'decorators': (login_required,)
+            },
+            'remove': {
+                'decorators': (login_required,)
             }
         }
 

@@ -11,6 +11,8 @@
 .. toctree::
    :maxdepth: 2
 
+   migrate_0.x_to_1.0
+
 Indices and tables
 ==================
 
