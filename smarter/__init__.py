@@ -269,7 +269,13 @@ class GenericViews(object):
         for k, v in (self.get_param(request, 'labels') or {}).items():
             form.fields[k].label = v
         for k, v in (self.get_param(request, 'widgets') or {}).items():
-            # TODO: refactoring
+            # TODO: Not good, not good. It seems there's no clear
+            # way to redefine worm widgets dynamically, so we go
+            # tricky way here. Widget 'attrs' and 'choices' are
+            # bound to widget in form constructor, so we need to
+            # manually bind them again to our custom widgets.
+            # If you know, how to handle it better, you're
+            # welcome! // rudyryk
             if isinstance(v, type):
                 widget = v()
                 extra_attrs = form.fields[k].widget_attrs(widget)
