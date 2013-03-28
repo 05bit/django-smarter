@@ -33,7 +33,7 @@ Template paths:
 
     ('%(app)s/%(model)s_%(action)s.html',
      '%(model)s_%(action)s.html',
-     'smarter/%(action)s.html)
+     'smarter/%(action)s.html')
 
 Decorators
 ----------
