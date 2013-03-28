@@ -3,7 +3,8 @@ django-smarter
 
 Another approach for declarative style generic views for Django. I beleive, it's a bit smarter :)
 
-It's a simple one-file helper for painless adding form-based CRUD (create-read-update-delete) views to your application. If you'll feel pain, that's may be not this case, so don't get smarter that way!
+Overview
+--------
 
 So many times we have to write:
 
