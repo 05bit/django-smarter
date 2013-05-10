@@ -214,6 +214,7 @@ A very special instance of `smarter.Site` is in the smarter module. It allows yo
 Here is smarter_views.py in your app:
 
 .. sourcecode:: python
+
     from smarter import site, GenericViews
     from models import Model
     
@@ -227,6 +228,7 @@ Here is smarter_views.py in your app:
 ... And urls.py:
 
 .. sourcecode:: python
+
     from django.conf.urls import patterns, include, url
     import smarter
 
