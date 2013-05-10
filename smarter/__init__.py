@@ -452,4 +452,26 @@ class GenericViews(object):
 
         return inner
 
+def autodiscover():
+    """
+    Auto-discover INSTALLED_APPS smarter_views modules and fail if
+    not present. This forces an import on them to register anything
+    they want.
+
+    Adapted from django.contrib.admin.autodiscover, which does the
+    same for admin modules in all INSTALLED_APPS.
+    """
+    import copy
+    from django.conf import settings
+    from django.utils.importlib import import_module
+    from django.utils.module_loading import module_has_submodule
+
+    for app in settings.INSTALLED_APPS:
+        mod = import_module(app)
+        try:
+            import_module("%s.smarter_views" % app)
+        except:
+            if module_has_submodule(mod, 'smarter_views'):
+                raise
+
 site = Site()
