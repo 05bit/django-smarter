@@ -451,3 +451,5 @@ class GenericViews(object):
             inner = d(inner)
 
         return inner
+
+site = Site()
