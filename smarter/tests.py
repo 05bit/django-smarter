@@ -178,3 +178,9 @@ class Tests(TestCase):
 
     def test_permissions(self):
         self._test_url('/test/testmodel/1/protected/', 403)
+
+
+class TestSingletonSite(TestCase):
+    def test_singleton_site_exists(self):
+        from smarter import site
+        self.assertTrue(isinstance(site, smarter.Site))

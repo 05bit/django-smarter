@@ -206,6 +206,39 @@ So, you have some easy way options:
 2. you may set 'template' key in ``PageViews.options`` for each action
 3. you may override default search paths by settings new ``PageViews.defaults`` (read `Options`_ section for details)
 
+Singleton Site
+~~~~~~~~~~~~~~
+
+A very special instance of `smarter.Site` is in the smarter module. It allows you to register your applications' views outside your urls.py file, and works well with `autodiscover()`.
+
+Here is smarter_views.py in your app:
+
+.. sourcecode:: python
+
+    from smarter import site, GenericViews
+    from models import Model
+    
+    class Views(GenericViews):
+        model = Model
+
+        # ...
+
+    site.register(Views)
+
+... And urls.py:
+
+.. sourcecode:: python
+
+    from django.conf.urls import patterns, include, url
+    import smarter
+
+    smarter.autodiscover()
+    urlpatterns = patterns('',
+        url(r'^', include(smarter.site.urls)),
+    )
+
+This is mostly recommended for non-reusable applications local to your Django project.
+
 API reference
 -------------
 
@@ -345,6 +378,9 @@ smarter.Site
 |
 | **urls**
 |  - property, returns URLs sequence for all registered views that can be included in `urlpatterns`
+| 
+| **autodiscover**
+|  - method which goes over `settings.INSTALLED_APPS` and looks for apps with `smarter_views` modules, which it imports, so they can register their views.
 
 Site
 ++++
