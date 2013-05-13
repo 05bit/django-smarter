@@ -7,6 +7,9 @@ admin.autodiscover()
 import smarter
 site = smarter.Site()
 
+# Find the views in smarter_views.py
+smarter.autodiscover()
+
 # from pages.models import Page, PageFile
 from pages.views import PageViews, PageFileViews
 site.register(PageViews)
@@ -22,6 +25,9 @@ urlpatterns = patterns('',
 
     # Generic views
     url(r'^', include(site.urls)),
+
+    # Views in smarter.site singleton
+    url(r'^', include(smarter.site.urls)),
 
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
