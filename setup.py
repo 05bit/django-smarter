@@ -3,7 +3,7 @@
 from os.path import join, dirname
 from setuptools import setup
 
-version = '1.0b'
+version = '1.1'
 
 LONG_DESCRIPTION = """
 Smarter declarative style generic views for Django.
@@ -28,7 +28,7 @@ setup(name='django-smarter',
       packages=['smarter',],
       include_package_data=True,
       long_description=long_description(),
-      install_requires=['Django>=1.4',],
+      # install_requires=['Django>=1.4',],
       classifiers=['Development Status :: 4 - Beta',
                    'Operating System :: OS Independent',
                    'License :: OSI Approved :: BSD License',
