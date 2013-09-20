@@ -7,7 +7,7 @@ Copyright (c) 2013, Alexey Kinyov <rudy@05bit.com>
 Licensed under BSD, see LICENSE for more details.
 """
 import re
-from django.conf.urls.defaults import patterns, include, url
+from django.conf.urls import patterns, include, url
 from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -369,7 +369,7 @@ class GenericViews(object):
         are not sufficient returns ``self.deny(request)``.
         """
         perm = self.get_param(request, 'permissions')
-        if perm and not request.user.has_perm(perm):
+        if perm and not request.user.has_perm(*perm):
             return self.deny(request)
 
     def _pipe(self, request, **kwargs):
