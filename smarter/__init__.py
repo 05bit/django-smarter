@@ -253,7 +253,12 @@ class GenericViews(object):
                 'fields': self.get_param(request, 'fields'),
             })
             if issubclass(form_options['form'], ModelForm):
-                form_class = modelform_factory(model=self.model, **form_options)
+                if (form_options['form'] == ModelForm and
+                    not form_options['fields'] and
+                    not form_options['exclude']):
+                        form_options['fields'] = '__all__'
+                form_class = modelform_factory(model=self.model,
+                                               **form_options)
             else:
                 form_class = form_options['form']
         else:
