@@ -7,7 +7,7 @@ Copyright (c) 2013, Alexey Kinyov <rudy@05bit.com>
 Licensed under BSD, see LICENSE for more details.
 """
 import re
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from django.forms.models import modelform_factory, ModelForm
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
