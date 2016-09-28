@@ -290,7 +290,8 @@ class GenericViews(object):
                     widget.choices = form.fields[k].choices
             else:
                 widget = v
-            form.fields[k].widget = widget
+            if widget:
+                form.fields[k].widget = widget
         for k, v in (self.get_param(request, 'help_text') or {}).items():
             form.fields[k].help_text = v
         for k, v in (self.get_param(request, 'required') or {}).items():
